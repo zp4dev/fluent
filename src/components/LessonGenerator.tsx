@@ -22,7 +22,6 @@ import { isValidEmail } from "@/lib/validateEmail";
 import { extractVideoId } from "@/lib/videoId";
 import type { GenerateLessonResponse } from "@/types/lesson";
 
-type LicenseStatus = "idle" | "validating" | "error";
 type RestoreStatus = "idle" | "checking" | "error";
 
 export default function LessonGenerator() {
@@ -31,11 +30,6 @@ export default function LessonGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateLessonResponse | null>(null);
   const [devMode, setDevMode] = useState(false);
-
-  const [showLicenseInput, setShowLicenseInput] = useState(false);
-  const [licenseInput, setLicenseInput] = useState("");
-  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus>("idle");
-  const [licenseError, setLicenseError] = useState<string | null>(null);
 
   const [showRestore, setShowRestore] = useState(false);
   const [restoreInput, setRestoreInput] = useState("");
@@ -47,13 +41,13 @@ export default function LessonGenerator() {
   const resultRef = useRef<HTMLDivElement>(null);
 
   const { remaining, limitReached, hydrated, increment } = useDailyLimit();
-  // Pro if EITHER a license key or a manually activated order says so.
+  // Pro if EITHER a stored license key or a manually activated order says so.
+  // License-key redemption UI is gone; backend validation stays for grandfathered keys.
   const {
     licenseKey,
     email: buyerEmail,
     isPro,
     hydrated: licenseHydrated,
-    activate,
     restore: restorePro,
   } = useProStatus();
 
@@ -177,45 +171,6 @@ export default function LessonGenerator() {
     }
   }
 
-  async function handleLicenseSubmit() {
-    const key = licenseInput.trim();
-    if (!key) {
-      return;
-    }
-
-    setLicenseStatus("validating");
-    setLicenseError(null);
-
-    try {
-      const response = await fetch("/api/validate-license", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ licenseKey: key }),
-      });
-
-      const data = (await response.json()) as {
-        valid?: boolean;
-        error?: string;
-      };
-
-      if (!response.ok || !data.valid) {
-        throw new Error(data.error ?? "Mã không hợp lệ hoặc đã hết hạn.");
-      }
-
-      activate(key);
-      setShowLicenseInput(false);
-      setLicenseInput("");
-      setLicenseStatus("idle");
-    } catch (validateError) {
-      setLicenseStatus("error");
-      setLicenseError(
-        validateError instanceof Error
-          ? validateError.message
-          : "Không thể xác thực mã.",
-      );
-    }
-  }
-
   async function handleRestoreSubmit() {
     const candidate = restoreInput.trim();
 
@@ -331,43 +286,7 @@ export default function LessonGenerator() {
 
         {!isPro ? (
           <div className="mt-4 border-t border-border pt-4">
-            {showLicenseInput ? (
-              <div className="space-y-2">
-                <label
-                  htmlFor="license-key"
-                  className="block text-xs font-bold text-body"
-                >
-                  Nhập mã ủng hộ của bạn
-                </label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    id="license-key"
-                    type="text"
-                    value={licenseInput}
-                    onChange={(event) => setLicenseInput(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        void handleLicenseSubmit();
-                      }
-                    }}
-                    placeholder="Dán mã license vào đây..."
-                    className="min-w-0 flex-1 rounded-xl border-2 border-border bg-background px-4 py-3 text-sm font-semibold text-heading outline-none placeholder:text-muted transition ease-smooth focus:border-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleLicenseSubmit()}
-                    disabled={licenseStatus === "validating" || !licenseInput.trim()}
-                    className="cursor-pointer rounded-xl bg-primary px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_3px_0_#CA2851] transition ease-smooth hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-                  >
-                    {licenseStatus === "validating" ? "Đang kiểm tra..." : "Kích hoạt"}
-                  </button>
-                </div>
-                {licenseError ? (
-                  <p className="text-xs font-bold text-wrong">{licenseError}</p>
-                ) : null}
-              </div>
-            ) : showRestore ? (
+            {showRestore ? (
               <div className="space-y-2">
                 <label
                   htmlFor="restore-email"
@@ -436,21 +355,8 @@ export default function LessonGenerator() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowRestore(false);
-                    setShowLicenseInput(true);
-                  }}
+                  onClick={() => setShowRestore(true)}
                   className="cursor-pointer text-xs font-bold text-primary underline-offset-2 transition ease-smooth hover:underline"
-                >
-                  Đã ủng hộ? Nhập mã tại đây
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowLicenseInput(false);
-                    setShowRestore(true);
-                  }}
-                  className="cursor-pointer text-xs font-bold text-muted underline-offset-2 transition ease-smooth hover:text-primary hover:underline"
                 >
                   Đã mua Pro? Khôi phục tại đây
                 </button>
