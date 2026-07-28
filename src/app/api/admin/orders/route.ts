@@ -1,121 +1,46 @@
 import { NextResponse } from "next/server";
 
 import { isAuthorizedAdmin } from "@/lib/adminAuth";
-import { grantPro, revokePro } from "@/lib/entitlements";
-import { getOrder, listPendingOrders, markOrderPaid } from "@/lib/orders";
-import { isPlanId } from "@/lib/plans";
-import { isValidEmail } from "@/lib/validateEmail";
+import { listPendingOrders } from "@/lib/orders";
 
 /**
- * Manual reconciliation endpoint.
+ * Read-only list of unreconciled orders, newest first.
  *
- * GET  — list pending orders to check against bank transactions.
- * POST — mark an order paid (or grant Pro directly by email) and set the expiry.
+ * Exists for recovery: when a transfer note has a typo'd or missing email,
+ * /api/admin/activate can't match it, so you list what's pending and find the
+ * order by amount and timestamp instead. Activation still goes through
+ * /api/admin/activate — there is deliberately no mutating verb here.
  *
- * Guarded by ADMIN_TOKEN; see lib/adminAuth.ts.
+ * The secret must come from the Authorization header; GET has no body and
+ * putting it in the query string would leak it into access logs.
+ *
+ *   curl -H "Authorization: Bearer $ADMIN_SECRET" \
+ *     https://your-app/api/admin/orders
  */
-
-function unauthorized() {
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
-
 export async function GET(request: Request) {
   if (!isAuthorizedAdmin(request)) {
-    return unauthorized();
-  }
-
-  const orders = await listPendingOrders();
-  return NextResponse.json({ count: orders.length, orders });
-}
-
-export async function POST(request: Request) {
-  if (!isAuthorizedAdmin(request)) {
-    return unauthorized();
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const body = (await request.json()) as {
-      orderId?: string;
-      email?: string;
-      plan?: string;
-      durationDays?: number;
-      revoke?: boolean;
-    };
+    const orders = await listPendingOrders();
 
-    // Revoke by email (refunds, mistakes).
-    if (body.revoke) {
-      if (!body.email || !isValidEmail(body.email)) {
-        return NextResponse.json(
-          { error: "A valid email is required to revoke." },
-          { status: 400 },
-        );
-      }
-      await revokePro(body.email);
-      return NextResponse.json({ ok: true, revoked: body.email });
-    }
-
-    // Path 1: activate an existing pending order.
-    if (body.orderId) {
-      const order = await getOrder(body.orderId);
-
-      if (!order) {
-        return NextResponse.json(
-          { error: `Order not found: ${body.orderId}` },
-          { status: 404 },
-        );
-      }
-
-      const entitlement = await grantPro({
+    return NextResponse.json({
+      count: orders.length,
+      orders: orders.map((order) => ({
+        id: order.id,
         email: order.email,
         plan: order.plan,
-        orderId: order.id,
-        durationDays: body.durationDays ?? order.durationDays,
-      });
-
-      const updated = await markOrderPaid(order.id, {
-        activatedAt: entitlement.activatedAt,
-        expiresAt: entitlement.expiresAt,
-      });
-
-      console.log(
-        `[admin] Activated order ${order.id} for ${order.email} until ${entitlement.expiresAt}`,
-      );
-
-      return NextResponse.json({ ok: true, order: updated, entitlement });
-    }
-
-    // Path 2: grant directly by email, for transfers with no matching order
-    // (e.g. someone paid but never clicked "Mình đã chuyển khoản").
-    if (body.email && body.plan) {
-      if (!isValidEmail(body.email)) {
-        return NextResponse.json({ error: "Invalid email." }, { status: 400 });
-      }
-      if (!isPlanId(body.plan)) {
-        return NextResponse.json(
-          { error: "Invalid plan — expected 'annual' or 'monthly'." },
-          { status: 400 },
-        );
-      }
-
-      const entitlement = await grantPro({
-        email: body.email,
-        plan: body.plan,
-        durationDays: body.durationDays,
-      });
-
-      console.log(
-        `[admin] Granted ${body.plan} to ${body.email} until ${entitlement.expiresAt}`,
-      );
-
-      return NextResponse.json({ ok: true, entitlement });
-    }
-
-    return NextResponse.json(
-      { error: "Provide either { orderId } or { email, plan }." },
-      { status: 400 },
-    );
+        planName: order.planName,
+        amount: order.amount,
+        createdAt: order.createdAt,
+      })),
+    });
   } catch (error) {
-    console.error("[admin] Activation failed:", error);
-    return NextResponse.json({ error: "Activation failed." }, { status: 500 });
+    console.error("[admin] Failed to list pending orders:", error);
+    return NextResponse.json(
+      { error: "Could not list pending orders." },
+      { status: 500 },
+    );
   }
 }

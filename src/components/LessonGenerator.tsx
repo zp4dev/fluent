@@ -18,10 +18,12 @@ import {
 import { animatedScrollToElement } from "@/lib/smoothScroll";
 import { DAILY_LIMIT, useDailyLimit } from "@/lib/useDailyLimit";
 import { useProStatus } from "@/lib/useProStatus";
+import { isValidEmail } from "@/lib/validateEmail";
 import { extractVideoId } from "@/lib/videoId";
 import type { GenerateLessonResponse } from "@/types/lesson";
 
 type LicenseStatus = "idle" | "validating" | "error";
+type RestoreStatus = "idle" | "checking" | "error";
 
 export default function LessonGenerator() {
   const [url, setUrl] = useState("");
@@ -35,6 +37,11 @@ export default function LessonGenerator() {
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus>("idle");
   const [licenseError, setLicenseError] = useState<string | null>(null);
 
+  const [showRestore, setShowRestore] = useState(false);
+  const [restoreInput, setRestoreInput] = useState("");
+  const [restoreStatus, setRestoreStatus] = useState<RestoreStatus>("idle");
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+
   const [savedIndex, setSavedIndex] = useState<SavedLessonMeta[]>([]);
   const [scrollToResult, setScrollToResult] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -47,6 +54,7 @@ export default function LessonGenerator() {
     isPro,
     hydrated: licenseHydrated,
     activate,
+    restore: restorePro,
   } = useProStatus();
 
   const maintenance = isMaintenanceMode();
@@ -208,6 +216,40 @@ export default function LessonGenerator() {
     }
   }
 
+  async function handleRestoreSubmit() {
+    const candidate = restoreInput.trim();
+
+    if (!isValidEmail(candidate)) {
+      setRestoreStatus("error");
+      setRestoreError("Email chưa hợp lệ. Bạn kiểm tra lại giúp mình nhé.");
+      return;
+    }
+
+    setRestoreStatus("checking");
+    setRestoreError(null);
+
+    try {
+      const restored = await restorePro(candidate);
+
+      if (!restored) {
+        setRestoreStatus("error");
+        setRestoreError(
+          "Không tìm thấy Pro cho email này. Kiểm tra lại email bạn đã dùng khi thanh toán nhé.",
+        );
+        return;
+      }
+
+      // Pro just flipped on, so this whole block unmounts — the badge above is
+      // the confirmation.
+      setRestoreInput("");
+      setShowRestore(false);
+      setRestoreStatus("idle");
+    } catch {
+      setRestoreStatus("error");
+      setRestoreError("Chưa kiểm tra được lúc này. Bạn thử lại sau ít phút nhé.");
+    }
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-10 px-5 py-12 sm:px-6">
       <header className="relative space-y-4 text-center">
@@ -325,6 +367,65 @@ export default function LessonGenerator() {
                   <p className="text-xs font-bold text-wrong">{licenseError}</p>
                 ) : null}
               </div>
+            ) : showRestore ? (
+              <div className="space-y-2">
+                <label
+                  htmlFor="restore-email"
+                  className="block text-xs font-bold text-body"
+                >
+                  Nhập email bạn đã dùng khi thanh toán
+                </label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    id="restore-email"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={restoreInput}
+                    onChange={(event) => {
+                      setRestoreInput(event.target.value);
+                      if (restoreStatus === "error") {
+                        setRestoreStatus("idle");
+                        setRestoreError(null);
+                      }
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void handleRestoreSubmit();
+                      }
+                    }}
+                    placeholder="ban@email.com"
+                    className="min-w-0 flex-1 rounded-xl border-2 border-border bg-background px-4 py-3 text-sm font-semibold text-heading outline-none placeholder:text-muted transition ease-smooth focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleRestoreSubmit()}
+                    disabled={
+                      restoreStatus === "checking" || !restoreInput.trim()
+                    }
+                    className="cursor-pointer rounded-xl bg-primary px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_3px_0_#CA2851] transition ease-smooth hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                  >
+                    {restoreStatus === "checking"
+                      ? "Đang kiểm tra..."
+                      : "Khôi phục"}
+                  </button>
+                </div>
+                {restoreError ? (
+                  <p className="text-xs font-bold text-wrong">{restoreError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRestore(false);
+                    setRestoreStatus("idle");
+                    setRestoreError(null);
+                  }}
+                  className="cursor-pointer text-xs font-bold text-muted underline-offset-2 transition ease-smooth hover:text-body hover:underline"
+                >
+                  Quay lại
+                </button>
+              </div>
             ) : (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <Link
@@ -335,10 +436,23 @@ export default function LessonGenerator() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => setShowLicenseInput(true)}
+                  onClick={() => {
+                    setShowRestore(false);
+                    setShowLicenseInput(true);
+                  }}
                   className="cursor-pointer text-xs font-bold text-primary underline-offset-2 transition ease-smooth hover:underline"
                 >
                   Đã ủng hộ? Nhập mã tại đây
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLicenseInput(false);
+                    setShowRestore(true);
+                  }}
+                  className="cursor-pointer text-xs font-bold text-muted underline-offset-2 transition ease-smooth hover:text-primary hover:underline"
+                >
+                  Đã mua Pro? Khôi phục tại đây
                 </button>
               </div>
             )}

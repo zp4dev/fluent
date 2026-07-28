@@ -118,6 +118,28 @@ export async function listPendingOrders(): Promise<Order[]> {
 }
 
 /**
+ * The newest still-pending order for an email — what a confirmed bank transfer
+ * gets matched against.
+ *
+ * Scans the pending list rather than keeping a per-email index: the list only
+ * holds unreconciled orders (ids are removed on activation), so it stays small.
+ */
+export async function findLatestPendingOrderByEmail(
+  email: string,
+): Promise<Order | null> {
+  const target = normalizeEmail(email);
+  const pending = await listPendingOrders();
+
+  const matches = pending
+    .filter((order) => order.status === "pending" && order.email === target)
+    .sort(
+      (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
+    );
+
+  return matches[0] ?? null;
+}
+
+/**
  * Mark an order paid. Returns the updated order, or null if it doesn't exist.
  * The caller is responsible for granting the entitlement.
  */

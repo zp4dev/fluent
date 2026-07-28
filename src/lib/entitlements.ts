@@ -109,19 +109,3 @@ export async function grantPro(input: {
   await redis.set(proKey(email), entitlement);
   return entitlement;
 }
-
-/** Revoke immediately (refunds, mistakes). */
-export async function revokePro(email: string): Promise<boolean> {
-  const redis = getRedis();
-  if (!redis) {
-    return false;
-  }
-
-  try {
-    await redis.del(proKey(email));
-    return true;
-  } catch (error) {
-    console.error("[entitlements] Failed to revoke:", email, error);
-    return false;
-  }
-}

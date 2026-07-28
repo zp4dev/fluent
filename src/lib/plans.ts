@@ -32,7 +32,7 @@ export const PLANS: Record<PlanId, Plan> = {
     periodLabel: "/năm",
     perMonthLabel: "≈ 65.800đ mỗi tháng",
     badge: "Tiết kiệm ~33%",
-    qrSrc: "/qr/pro-annual.png",
+    qrSrc: "/qr/pro-annual.jpg",
     durationDays: 365,
   },
   monthly: {
@@ -41,7 +41,7 @@ export const PLANS: Record<PlanId, Plan> = {
     amount: 99_000,
     priceLabel: "99.000đ",
     periodLabel: "/tháng",
-    qrSrc: "/qr/pro-monthly.png",
+    qrSrc: "/qr/pro-monthly.jpg",
     durationDays: 30,
   },
 };
