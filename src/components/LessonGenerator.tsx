@@ -7,6 +7,7 @@ import LessonDisplay from "@/components/LessonDisplay";
 import SavedLessons from "@/components/SavedLessons";
 import { CHECKOUT_URL } from "@/lib/checkout";
 import { isMaintenanceMode } from "@/lib/maintenance";
+import { PRO_DAILY_LIMIT_CODE } from "@/lib/proDailyLimitShared";
 import { SAMPLE_LESSON } from "@/lib/sampleLesson";
 import {
   deleteSavedLesson,
@@ -30,6 +31,8 @@ export default function LessonGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateLessonResponse | null>(null);
   const [devMode, setDevMode] = useState(false);
+  /** Set when the server returns the quiet Pro fair-use daily cap. */
+  const [proDailyBlocked, setProDailyBlocked] = useState(false);
 
   const [showRestore, setShowRestore] = useState(false);
   const [restoreInput, setRestoreInput] = useState("");
@@ -52,7 +55,9 @@ export default function LessonGenerator() {
   } = useProStatus();
 
   const maintenance = isMaintenanceMode();
-  const blockedByLimit = !devMode && !isPro && limitReached;
+  const blockedByFreeLimit = !devMode && !isPro && limitReached;
+  const blockedByProDaily = !devMode && isPro && proDailyBlocked;
+  const blockedByLimit = blockedByFreeLimit || blockedByProDaily;
   const inputDisabled = maintenance || blockedByLimit;
 
   useEffect(() => {
@@ -141,9 +146,15 @@ export default function LessonGenerator() {
 
       const data = (await response.json()) as GenerateLessonResponse & {
         error?: string;
+        code?: string;
       };
 
       if (response.status === 429) {
+        if (data.code === PRO_DAILY_LIMIT_CODE) {
+          // Soft fair-use stop — dedicated callout below, not a red error.
+          setProDailyBlocked(true);
+          return;
+        }
         throw new Error(
           data.error ??
             "Bạn đã tạo quá nhiều bài học trong một giờ qua. Vui lòng thử lại sau ít phút nhé! ⏳",
@@ -274,7 +285,7 @@ export default function LessonGenerator() {
           isPro ? (
             <p className="mt-2 flex items-center gap-1 text-center text-xs font-bold text-primary sm:text-left">
               <span className="inline-flex items-center gap-1 rounded-full border-2 border-primary bg-highlight px-3 py-1">
-                ☕ Pro — không giới hạn
+                ☕ Pro
               </span>
             </p>
           ) : (
@@ -372,7 +383,16 @@ export default function LessonGenerator() {
         onDelete={handleDeleteSaved}
       />
 
-      {blockedByLimit ? (
+      {blockedByProDaily ? (
+        <div className="rounded-2xl border-2 border-border bg-highlight px-6 py-6 text-center">
+          <p className="text-base font-bold leading-7 text-heading">
+            Hôm nay bạn đã tạo đủ bài học rồi. Ngày mai quay lại tiếp nhé — mình
+            sẽ sẵn sàng! ☕
+          </p>
+        </div>
+      ) : null}
+
+      {blockedByFreeLimit ? (
         <div className="rounded-2xl border-2 border-border bg-highlight px-6 py-6 text-center">
           <p className="text-base font-bold leading-7 text-heading">
             Fluent hoàn toàn miễn phí! Nếu bạn thấy hữu ích và muốn ủng hộ mình,

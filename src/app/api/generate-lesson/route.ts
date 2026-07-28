@@ -3,6 +3,12 @@ import { NextResponse } from "next/server";
 import { generateLesson } from "@/lib/anthropic";
 import { isMaintenanceMode } from "@/lib/maintenance";
 import { isProUser } from "@/lib/pro";
+import {
+  PRO_DAILY_LIMIT_CODE,
+  PRO_DAILY_LIMIT_MESSAGE,
+  checkProDailyLimit,
+  getProDailyIdentifier,
+} from "@/lib/proDailyLimit";
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 import {
   extractVideoId,
@@ -67,15 +73,41 @@ export async function POST(request: Request) {
       );
     }
 
-    const rawTranscript = await getTranscriptText(videoId);
-    const transcript = truncateTranscript(rawTranscript);
-
     // Re-check Pro server-side so the depth fields can't be spoofed by the
     // client. Passes on either an active order or a valid license key.
     const includeDepth = await isProUser({
       email: body.email,
       licenseKey: body.licenseKey,
     });
+
+    // Quiet fair-use cap for every Pro path (paid + grandfathered). Free users
+    // keep the client-side 3/day counter; this only runs for Pro.
+    if (includeDepth) {
+      const identifier =
+        getProDailyIdentifier({
+          email: body.email,
+          licenseKey: body.licenseKey,
+        }) ?? `ip:${ip}`;
+
+      const proDaily = await checkProDailyLimit(identifier);
+
+      if (!proDaily.success) {
+        console.log(
+          `[generate-lesson] Pro daily limit exceeded for ${identifier}`,
+        );
+        return NextResponse.json(
+          {
+            error: PRO_DAILY_LIMIT_MESSAGE,
+            code: PRO_DAILY_LIMIT_CODE,
+          },
+          { status: 429 },
+        );
+      }
+    }
+
+    const rawTranscript = await getTranscriptText(videoId);
+    const transcript = truncateTranscript(rawTranscript);
+
     console.log(
       `[generate-lesson] Generating lesson with Claude (tier: ${
         includeDepth ? "pro" : "free"
