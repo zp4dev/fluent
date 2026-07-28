@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { generateLesson } from "@/lib/anthropic";
-import { isProLicense } from "@/lib/license";
 import { isMaintenanceMode } from "@/lib/maintenance";
+import { isProUser } from "@/lib/pro";
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 import {
   extractVideoId,
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       url?: string;
       licenseKey?: string;
+      email?: string;
     };
     const url = body.url?.trim();
 
@@ -69,9 +70,12 @@ export async function POST(request: Request) {
     const rawTranscript = await getTranscriptText(videoId);
     const transcript = truncateTranscript(rawTranscript);
 
-    // Validate the license server-side so Pro-only vocabulary depth can't be
-    // spoofed by the client. Free (no/invalid key) gets the lighter prompt.
-    const includeDepth = await isProLicense(body.licenseKey);
+    // Re-check Pro server-side so the depth fields can't be spoofed by the
+    // client. Passes on either an active order or a valid license key.
+    const includeDepth = await isProUser({
+      email: body.email,
+      licenseKey: body.licenseKey,
+    });
     console.log(
       `[generate-lesson] Generating lesson with Claude (tier: ${
         includeDepth ? "pro" : "free"

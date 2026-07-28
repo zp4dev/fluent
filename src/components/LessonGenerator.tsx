@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import LessonDisplay from "@/components/LessonDisplay";
@@ -16,7 +17,7 @@ import {
 } from "@/lib/savedLessons";
 import { animatedScrollToElement } from "@/lib/smoothScroll";
 import { DAILY_LIMIT, useDailyLimit } from "@/lib/useDailyLimit";
-import { useLicense } from "@/lib/useLicense";
+import { useProStatus } from "@/lib/useProStatus";
 import { extractVideoId } from "@/lib/videoId";
 import type { GenerateLessonResponse } from "@/types/lesson";
 
@@ -39,12 +40,14 @@ export default function LessonGenerator() {
   const resultRef = useRef<HTMLDivElement>(null);
 
   const { remaining, limitReached, hydrated, increment } = useDailyLimit();
+  // Pro if EITHER a license key or a manually activated order says so.
   const {
     licenseKey,
+    email: buyerEmail,
     isPro,
     hydrated: licenseHydrated,
     activate,
-  } = useLicense();
+  } = useProStatus();
 
   const maintenance = isMaintenanceMode();
   const blockedByLimit = !devMode && !isPro && limitReached;
@@ -127,7 +130,11 @@ export default function LessonGenerator() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Send the license key so the server can unlock Pro vocabulary depth.
-        body: JSON.stringify({ url, licenseKey: licenseKey ?? undefined }),
+        body: JSON.stringify({
+          url,
+          licenseKey: licenseKey ?? undefined,
+          email: buyerEmail || undefined,
+        }),
       });
 
       const data = (await response.json()) as GenerateLessonResponse & {
@@ -320,14 +327,12 @@ export default function LessonGenerator() {
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <a
+                <Link
                   href={CHECKOUT_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="text-xs font-bold text-primary underline-offset-2 transition ease-smooth hover:underline"
                 >
                   ☕ Ủng hộ Fluent
-                </a>
+                </Link>
                 <button
                   type="button"
                   onClick={() => setShowLicenseInput(true)}
@@ -354,14 +359,12 @@ export default function LessonGenerator() {
             bạn có thể mua cho mình một ly cà phê để mình tiếp tục phát triển
             Fluent ☕
           </p>
-          <a
+          <Link
             href={CHECKOUT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
             className="btn-3d mt-5 inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-extrabold uppercase tracking-wide text-white hover:bg-primary-hover"
           >
-            Ủng hộ Fluent — $3 ☕
-          </a>
+            Nâng cấp Pro ☕
+          </Link>
         </div>
       ) : null}
 
@@ -376,7 +379,9 @@ export default function LessonGenerator() {
 
       {loading ? (
         <div className="rounded-3xl border-2 border-dashed border-border bg-highlight px-6 py-20 text-center">
-          <p className="text-4xl">⏳</p>
+          <p className="text-4xl">
+            <span className="animate-hourglass">⏳</span>
+          </p>
           <p className="mt-4 text-lg font-extrabold text-heading">
             Đang tạo bài học...
           </p>

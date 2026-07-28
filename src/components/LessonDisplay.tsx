@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import DownloadPdfButton from "@/components/DownloadPdfButton";
 import GrammarSection from "@/components/lesson/GrammarSection";
 import IdiomsSection from "@/components/lesson/IdiomsSection";
 import QuizSection from "@/components/lesson/QuizSection";
@@ -184,23 +185,31 @@ export default function LessonDisplay({
               ) : null}
             </div>
 
-            <a
-              href={videoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold text-primary shadow-sm transition ease-smooth hover:border-primary hover:bg-highlight"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <a
+                href={videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold text-primary shadow-sm transition ease-smooth hover:border-primary hover:bg-highlight"
               >
-                <path d="M8 5v14l11-7L8 5z" fill="currentColor" />
-              </svg>
-              Xem video gốc
-            </a>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path d="M8 5v14l11-7L8 5z" fill="currentColor" />
+                </svg>
+                Xem video gốc
+              </a>
+
+              <DownloadPdfButton
+                lesson={lesson}
+                videoId={videoId}
+                isPro={isPro}
+              />
+            </div>
           </div>
         </div>
       </header>

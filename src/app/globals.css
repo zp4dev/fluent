@@ -89,6 +89,37 @@ body {
   animation: celebrate-bounce 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/*
+ * Hourglass being turned over: a half-turn every ~2s, each flip taking ~0.6s
+ * followed by a ~1.4s rest. Two half-turns per 4s cycle land back at 360deg so
+ * the loop is seamless with no snap-back.
+ */
+@keyframes hourglass-flip {
+  0%,
+  10% {
+    transform: rotate(0deg);
+  }
+  25%,
+  60% {
+    transform: rotate(180deg);
+  }
+  75%,
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-hourglass {
+  display: inline-block;
+  animation: hourglass-flip 4s cubic-bezier(0.6, -0.05, 0.3, 1.05) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hourglass {
+    animation: none;
+  }
+}
+
 .confetti-particle {
   animation: confetti-pop 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }

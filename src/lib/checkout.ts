@@ -1,5 +1,6 @@
-// Lemon Squeezy checkout URL for the Pro purchase flow.
-// Replace with your real checkout URL (or set the env var).
-export const CHECKOUT_URL =
-  process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL ??
-  "https://your-store.lemonsqueezy.com/buy/your-product-id";
+// Where every "upgrade / support Fluent" call to action points.
+//
+// This is the in-app bank-transfer checkout (VietQR + manual activation), not
+// an external payment provider — so it's an internal route and should be
+// navigated to with next/link, not opened in a new tab.
+export const CHECKOUT_URL = "/nang-cap";

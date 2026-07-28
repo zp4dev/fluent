@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import SpeakButton from "@/components/SpeakButton";
@@ -391,14 +392,12 @@ export default function VocabularyCards({
         <p className="mt-6 text-center text-sm leading-6 text-body sm:text-left">
           Bản Pro mở khóa nghĩa mở rộng, cụm từ đi kèm và họ từ vựng cho{" "}
           <span className="font-bold">mọi từ</span>.{" "}
-          <a
+          <Link
             href={CHECKOUT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
             className="font-bold text-primary underline-offset-2 transition ease-smooth hover:text-primary-hover hover:underline"
           >
             Nâng cấp Pro ☕
-          </a>
+          </Link>
         </p>
       ) : null}
     </div>
