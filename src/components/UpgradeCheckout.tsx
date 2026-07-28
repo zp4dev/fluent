@@ -38,6 +38,39 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   );
 }
 
+/** Centered clickable value — the text itself is the copy control. */
+function CopyableText({
+  value,
+  className,
+}: {
+  value: string;
+  className?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard can be blocked; the value is still visible.
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title="Nhấn để chép"
+      aria-label={copied ? "Đã chép" : `Chép ${value}`}
+      className={`cursor-pointer underline-offset-4 transition ease-smooth hover:underline ${className ?? ""}`}
+    >
+      {copied ? "Đã chép ✓" : value}
+    </button>
+  );
+}
+
 function DetailRow({
   label,
   value,
@@ -236,16 +269,45 @@ export default function UpgradeCheckout() {
         <h2 className="text-center text-lg font-extrabold text-heading">
           Quét mã để chuyển khoản
         </h2>
+        <p className="mt-2 text-center text-sm leading-6 text-muted">
+          Mở app ngân hàng của bạn, chọn quét mã QR và quét mã bên dưới.
+        </p>
 
-        <div className="mt-5 flex justify-center">
+        <div className="mt-5 flex justify-center px-2 sm:px-4">
           {/* Static, plan-specific VietQR — the amount is baked into the code. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             key={plan.qrSrc}
             src={plan.qrSrc}
             alt={`Mã VietQR cho gói ${plan.name} — ${plan.priceLabel}`}
-            className="w-full max-w-[280px] rounded-2xl"
+            className="h-auto w-full max-w-[300px] rounded-xl object-contain shadow-[0_4px_16px_rgba(45,45,45,0.08)]"
           />
+        </div>
+
+        {/* Receipt-style bank details — plain centered text, no box */}
+        <div className="mt-5 space-y-1.5 text-center">
+          <p className="text-sm font-bold text-heading">
+            {BANK_DETAILS.bankName}
+          </p>
+          <p className="text-sm font-bold text-heading">
+            {BANK_DETAILS.accountHolder}
+          </p>
+          {BANK_DETAILS.accountNumber ? (
+            <p>
+              <CopyableText
+                value={BANK_DETAILS.accountNumber}
+                className="text-sm font-bold text-heading hover:text-primary"
+              />
+            </p>
+          ) : (
+            <p className="text-sm font-bold text-heading">Đang cập nhật</p>
+          )}
+          <p className="pt-0.5">
+            <CopyableText
+              value={formatVnd(plan.amount)}
+              className="text-base font-extrabold text-translation hover:text-primary-hover"
+            />
+          </p>
         </div>
 
         <p className="mt-6 rounded-2xl bg-highlight px-5 py-4 text-center text-sm font-bold leading-6 text-heading">
@@ -300,39 +362,6 @@ export default function UpgradeCheckout() {
             ) : null}
           </div>
         </div>
-
-        {/* Plain-text fallback */}
-        <details className="group mt-5">
-          <summary className="cursor-pointer list-none text-sm font-bold text-primary transition ease-smooth hover:text-primary-hover">
-            Không quét được mã? Xem thông tin chuyển khoản
-          </summary>
-          <div className="mt-3 rounded-2xl bg-highlight px-4 py-2">
-            <DetailRow label="Ngân hàng" value={BANK_DETAILS.bankName} />
-            <DetailRow
-              label="Số tài khoản"
-              value={BANK_DETAILS.accountNumber || "Đang cập nhật"}
-              copyable={Boolean(BANK_DETAILS.accountNumber)}
-            />
-            <DetailRow
-              label="Chủ tài khoản"
-              value={BANK_DETAILS.accountHolder}
-            />
-            {BANK_DETAILS.branch ? (
-              <DetailRow label="Chi nhánh" value={BANK_DETAILS.branch} />
-            ) : null}
-            <DetailRow
-              label="Số tiền"
-              value={formatVnd(plan.amount)}
-              copyable
-              strong
-            />
-            <DetailRow
-              label="Nội dung"
-              value={isValid ? email.trim() : "email của bạn"}
-              copyable={isValid}
-            />
-          </div>
-        </details>
 
         {error ? (
           <p
