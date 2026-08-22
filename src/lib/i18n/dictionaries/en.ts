@@ -423,6 +423,30 @@ const en: Dictionary = {
     skipped: "Skipped:",
     requestFailed: "The call failed:",
     runFailed: "The run failed.",
+    backupTitle: "Inspect a learned-content JSON file",
+    backupHint:
+      "Choose a JSON file exported from the app to see whether it's a saved-lessons backup, a notebooks backup, or unrecognised. Read-only until you press import.",
+    backupChoose: "Choose a JSON file...",
+    backupReadFailed: "Could not open the file. Try choosing it again.",
+    backupInvalidJson: "Could not read it — this isn't valid JSON.",
+    backupKindLabel: "Detected kind",
+    backupKindLessons: "Saved lessons (saved-lessons)",
+    backupKindNotebooks: "Notebooks (notebooks)",
+    backupKindUnknown: "Not recognised",
+    backupEnvelopeApp: "app",
+    backupEnvelopeFormatVersion: "formatVersion",
+    backupEnvelopeSchemaVersion: "schemaVersion",
+    backupEnvelopeExportedAt: "exportedAt",
+    backupTopLevelKeys: "Top-level keys",
+    backupValidCount: "Valid: {count}",
+    backupDroppedCount: "Dropped: {count}",
+    backupImportCta: "Import into this browser (test)",
+    backupImporting: "Importing...",
+    backupImportWarning:
+      "⚠️ Writes directly into this browser's localStorage — for testing, not real data.",
+    backupImportedLessons: "Imported {count} lesson(s) into this browser.",
+    backupImportedNotebooks:
+      "Imported {words} word(s) into {notebooks} notebook(s) in this browser.",
   },
 
   email: {

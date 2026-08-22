@@ -428,6 +428,30 @@ const vi = {
     skipped: "Đã bỏ qua:",
     requestFailed: "Cú gọi thất bại:",
     runFailed: "Chạy thử thất bại.",
+    backupTitle: "Kiểm tra file JSON đã học",
+    backupHint:
+      "Chọn một file JSON xuất ra từ ứng dụng để xem đây là bài học đã lưu, sổ từ, hay không nhận diện được. Chỉ đọc để xem — không ghi gì cho tới khi bạn bấm nhập.",
+    backupChoose: "Chọn file JSON...",
+    backupReadFailed: "Không mở được file. Hãy thử chọn lại.",
+    backupInvalidJson: "Không đọc được — đây không phải JSON hợp lệ.",
+    backupKindLabel: "Loại phát hiện",
+    backupKindLessons: "Bài học đã lưu (saved-lessons)",
+    backupKindNotebooks: "Sổ từ (notebooks)",
+    backupKindUnknown: "Không nhận diện được",
+    backupEnvelopeApp: "app",
+    backupEnvelopeFormatVersion: "formatVersion",
+    backupEnvelopeSchemaVersion: "schemaVersion",
+    backupEnvelopeExportedAt: "exportedAt",
+    backupTopLevelKeys: "Các khoá cấp cao nhất",
+    backupValidCount: "Hợp lệ: {count}",
+    backupDroppedCount: "Bị bỏ qua: {count}",
+    backupImportCta: "Nhập vào trình duyệt này (test)",
+    backupImporting: "Đang nhập...",
+    backupImportWarning:
+      "⚠️ Ghi trực tiếp vào localStorage của trình duyệt hiện tại — dùng để test, không phải cho dữ liệu thật.",
+    backupImportedLessons: "Đã nhập {count} bài học vào trình duyệt này.",
+    backupImportedNotebooks:
+      "Đã nhập {words} từ vào {notebooks} sổ trong trình duyệt này.",
   },
 
   email: {
