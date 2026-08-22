@@ -1,8 +1,8 @@
 /**
  * Fluent Pro plans.
  *
- * Each plan maps to its own STATIC VietQR image in /public/qr — the QR encodes
- * the exact amount, so QR codes are never generated dynamically.
+ * The VietQR image for each plan is built at render time from `amount` (see
+ * `@/lib/vietqr`), so there's no static QR asset to keep in sync per plan.
  *
  * `durationDays` is what Pro is extended by when a transfer is confirmed and
  * the account is activated manually.
@@ -19,7 +19,6 @@ export interface Plan {
   /** Shown under the price on the annual plan to make the saving concrete. */
   perMonthLabel?: string;
   badge?: string;
-  qrSrc: string;
   durationDays: number;
 }
 
@@ -32,7 +31,6 @@ export const PLANS: Record<PlanId, Plan> = {
     periodLabel: "/năm",
     perMonthLabel: "≈ 65.800đ mỗi tháng",
     badge: "Tiết kiệm ~33%",
-    qrSrc: "/qr/pro-qr-annually.png",
     durationDays: 365,
   },
   monthly: {
@@ -41,7 +39,6 @@ export const PLANS: Record<PlanId, Plan> = {
     amount: 99_000,
     priceLabel: "99.000đ",
     periodLabel: "/tháng",
-    qrSrc: "/qr/pro-qr-monthly.png",
     durationDays: 30,
   },
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { BANK_DETAILS } from "@/lib/bank";
 import {
@@ -12,6 +12,7 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { useBuyerEmail } from "@/lib/useBuyerEmail";
+import { buildVietQrUrl } from "@/lib/vietqr";
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -111,6 +112,24 @@ export default function UpgradeCheckout() {
 
   const { email, setEmail, hydrated, isValid } = useBuyerEmail();
   const plan = PLANS[planId];
+
+  // Debounced so the QR image isn't re-fetched on every keystroke — it only
+  // refreshes once the buyer pauses typing.
+  const [qrEmail, setQrEmail] = useState("");
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setQrEmail(isValid ? email.trim() : "");
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [email, isValid]);
+
+  const qrUrl = buildVietQrUrl({
+    bankId: BANK_DETAILS.bankId,
+    accountNumber: BANK_DETAILS.accountNumber,
+    accountName: BANK_DETAILS.accountHolder,
+    amount: plan.amount,
+    addInfo: qrEmail || undefined,
+  });
 
   async function handleConfirm() {
     if (!isValid) {
@@ -274,11 +293,11 @@ export default function UpgradeCheckout() {
         </p>
 
         <div className="mt-5 flex justify-center px-2 sm:px-4">
-          {/* Static, plan-specific VietQR — the amount is baked into the code. */}
+          {/* VietQR quick-link image — the amount updates instantly per plan. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            key={plan.qrSrc}
-            src={plan.qrSrc}
+            key={qrUrl}
+            src={qrUrl}
             alt={`Mã VietQR cho gói ${plan.name} — ${plan.priceLabel}`}
             className="h-auto w-full max-w-[300px] rounded-xl object-contain shadow-[0_4px_16px_rgba(45,45,45,0.08)]"
           />

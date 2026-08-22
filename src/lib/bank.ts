@@ -8,7 +8,9 @@
 
 export const BANK_DETAILS = {
   bankName: process.env.NEXT_PUBLIC_BANK_NAME || "Vietcombank",
-  accountNumber: process.env.NEXT_PUBLIC_BANK_ACCOUNT || "",
+  /** Vietcombank's VietQR/Napas BIN — used to build the VietQR image URL. */
+  bankId: process.env.NEXT_PUBLIC_BANK_ID || "970436",
+  accountNumber: process.env.NEXT_PUBLIC_BANK_ACCOUNT || "1039760814",
   accountHolder: process.env.NEXT_PUBLIC_BANK_HOLDER || "DANG QUANG DANH",
   branch: process.env.NEXT_PUBLIC_BANK_BRANCH || "",
 } as const;
