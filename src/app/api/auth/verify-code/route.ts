@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { fmt } from "@/lib/i18n/format";
+import { getServerDictionary } from "@/lib/i18n/server";
+
 import { startSession } from "@/lib/authSession";
 import { checkVerifyCodeLimit, getClientIp } from "@/lib/ratelimit";
 import { verifyCode } from "@/lib/verificationCode";
@@ -10,12 +13,14 @@ import { isValidEmail, normalizeEmail } from "@/lib/validateEmail";
  * browser can come to be trusted with an email address.
  */
 export async function POST(request: Request) {
+  const t = await getServerDictionary();
+
   try {
     const rateLimit = await checkVerifyCodeLimit(getClientIp(request));
 
     if (!rateLimit.success) {
       return NextResponse.json(
-        { ok: false, error: "Bạn thử quá nhiều lần. Thử lại sau một giờ nhé." },
+        { ok: false, error: t.auth.tooManyAttempts },
         { status: 429 },
       );
     }
@@ -26,7 +31,7 @@ export async function POST(request: Request) {
 
     if (!raw || !isValidEmail(raw) || !code) {
       return NextResponse.json(
-        { ok: false, error: "Bạn nhập email và mã xác thực giúp mình nhé." },
+        { ok: false, error: t.auth.missingEmailOrCode },
         { status: 400 },
       );
     }
@@ -37,15 +42,15 @@ export async function POST(request: Request) {
     if (!result.ok) {
       const error =
         result.reason === "expired"
-          ? "Mã đã hết hạn hoặc không còn dùng được. Bạn yêu cầu mã mới nhé."
-          : `Mã không đúng. Bạn còn ${result.attemptsLeft} lần thử.`;
+          ? t.auth.codeExpired
+          : fmt(t.auth.wrongCodeAttempts, { attempts: result.attemptsLeft });
 
       return NextResponse.json({ ok: false, error }, { status: 400 });
     }
 
     if (!(await startSession(email))) {
       return NextResponse.json(
-        { ok: false, error: "Chưa đăng nhập được lúc này. Bạn thử lại sau nhé." },
+        { ok: false, error: t.auth.cannotSignIn },
         { status: 500 },
       );
     }
@@ -55,7 +60,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[auth] verify-code failed:", error);
     return NextResponse.json(
-      { ok: false, error: "Chưa đăng nhập được lúc này. Bạn thử lại sau nhé." },
+      { ok: false, error: t.auth.cannotSignIn },
       { status: 500 },
     );
   }

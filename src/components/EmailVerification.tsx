@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { useI18n } from "@/lib/i18n/context";
+import { rich } from "@/lib/i18n/format";
 import { isValidEmail } from "@/lib/validateEmail";
 
 /**
@@ -17,6 +19,7 @@ type Step = "email" | "code";
 interface Props {
   /** Prefills the field — a remembered address, never an authenticated one. */
   initialEmail?: string;
+  /** Defaults to the translated "verify" label when omitted. */
   submitLabel?: string;
   onVerified: () => void | Promise<void>;
 }
@@ -29,9 +32,10 @@ const buttonClass =
 
 export default function EmailVerification({
   initialEmail = "",
-  submitLabel = "Xác thực",
+  submitLabel,
   onVerified,
 }: Props) {
+  const { t } = useI18n();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState("");
@@ -39,11 +43,13 @@ export default function EmailVerification({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const confirmLabel = submitLabel ?? t.auth.verify;
+
   async function requestCode() {
     const candidate = email.trim();
 
     if (!isValidEmail(candidate)) {
-      setError("Email chưa hợp lệ. Bạn kiểm tra lại giúp mình nhé.");
+      setError(t.auth.invalidEmail);
       return;
     }
 
@@ -63,14 +69,14 @@ export default function EmailVerification({
       };
 
       if (!response.ok || !data.ok) {
-        setError(data.error ?? "Chưa gửi được mã. Bạn thử lại sau nhé.");
+        setError(data.error ?? t.auth.sendFailed);
         return;
       }
 
-      setNotice(data.message ?? "Mã xác thực đã được gửi.");
+      setNotice(data.message ?? t.auth.codeSentDefault);
       setStep("code");
     } catch {
-      setError("Chưa gửi được mã. Bạn kiểm tra kết nối rồi thử lại nhé.");
+      setError(t.auth.sendFailedNetwork);
     } finally {
       setBusy(false);
     }
@@ -80,7 +86,7 @@ export default function EmailVerification({
     const value = code.trim();
 
     if (!value) {
-      setError("Bạn nhập mã trong email giúp mình nhé.");
+      setError(t.auth.enterCode);
       return;
     }
 
@@ -96,13 +102,13 @@ export default function EmailVerification({
       const data = (await response.json()) as { ok?: boolean; error?: string };
 
       if (!response.ok || !data.ok) {
-        setError(data.error ?? "Mã không đúng. Bạn thử lại nhé.");
+        setError(data.error ?? t.auth.wrongCode);
         return;
       }
 
       await onVerified();
     } catch {
-      setError("Chưa xác thực được. Bạn kiểm tra kết nối rồi thử lại nhé.");
+      setError(t.auth.verifyFailedNetwork);
     } finally {
       setBusy(false);
     }
@@ -112,16 +118,20 @@ export default function EmailVerification({
     return (
       <div>
         <p className="text-sm leading-6 text-body">
-          Mình đã gửi mã 6 số tới{" "}
-          <span className="font-extrabold text-translation">{email.trim()}</span>.
-          Mã có hiệu lực trong 10 phút.
+          {rich(t.auth.codeSentTo, {
+            email: (
+              <span className="font-extrabold text-translation">
+                {email.trim()}
+              </span>
+            ),
+          })}
         </p>
 
         <label
           htmlFor="verification-code"
           className="mt-4 block text-sm font-extrabold text-heading"
         >
-          Mã xác thực
+          {t.auth.codeLabel}
         </label>
         <input
           id="verification-code"
@@ -137,7 +147,7 @@ export default function EmailVerification({
               setError(null);
             }
           }}
-          placeholder="000000"
+          placeholder={t.auth.codePlaceholder}
           className={`${inputClass} text-center text-2xl tracking-[0.4em]`}
         />
 
@@ -153,7 +163,7 @@ export default function EmailVerification({
           disabled={busy || code.length < 6}
           className={buttonClass}
         >
-          {busy ? "Đang kiểm tra..." : submitLabel}
+          {busy ? t.auth.verifying : confirmLabel}
         </button>
 
         <button
@@ -166,7 +176,7 @@ export default function EmailVerification({
           }}
           className="mt-3 w-full cursor-pointer text-sm font-bold text-muted transition ease-smooth hover:text-primary"
         >
-          Đổi email hoặc gửi lại mã
+          {t.auth.changeEmail}
         </button>
       </div>
     );
@@ -178,7 +188,7 @@ export default function EmailVerification({
         htmlFor="verification-email"
         className="block text-sm font-extrabold text-heading"
       >
-        Email của bạn
+        {t.auth.emailLabel}
       </label>
       <input
         id="verification-email"
@@ -192,11 +202,11 @@ export default function EmailVerification({
             setError(null);
           }
         }}
-        placeholder="ban@email.com"
+        placeholder={t.auth.emailPlaceholder}
         className={inputClass}
       />
       <p className="mt-2 text-xs leading-5 text-muted">
-        Mình gửi một mã 6 số tới email này để xác nhận đúng là bạn.
+        {t.auth.emailHint}
       </p>
 
       {error ? (
@@ -214,7 +224,7 @@ export default function EmailVerification({
         disabled={busy || !email.trim()}
         className={buttonClass}
       >
-        {busy ? "Đang gửi..." : "Gửi mã xác thực"}
+        {busy ? t.auth.sending : t.auth.sendCode}
       </button>
     </div>
   );

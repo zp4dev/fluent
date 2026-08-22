@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 import { generateLesson } from "@/lib/anthropic";
 import { readSession } from "@/lib/authSession";
 import { UserFacingError } from "@/lib/errors";
+import { getServerDictionary, getServerLocale } from "@/lib/i18n/server";
 import { isMaintenanceMode } from "@/lib/maintenance";
 import { isProUser } from "@/lib/pro";
 import {
   PRO_DAILY_LIMIT_CODE,
-  PRO_DAILY_LIMIT_MESSAGE,
   checkProDailyLimit,
   getProDailyIdentifier,
 } from "@/lib/proDailyLimit";
@@ -26,14 +26,17 @@ import {
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
+  // The locale cookie decides two things at once: what language the lesson is
+  // written in, and what language these errors come back in. Read once, up
+  // front, so a failure before generation is still in the reader's language.
+  const locale = await getServerLocale();
+  const t = await getServerDictionary();
+
   try {
     if (isMaintenanceMode()) {
       console.log("[generate-lesson] Blocked — maintenance mode is on");
       return NextResponse.json(
-        {
-          error:
-            "Fluent đang được nâng cấp. Vui lòng quay lại sau ít phút nhé! 🛠️",
-        },
+        { error: t.api.maintenance },
         { status: 503 },
       );
     }
@@ -53,7 +56,7 @@ export async function POST(request: Request) {
 
     if (!url) {
       return NextResponse.json(
-        { error: "Vui lòng nhập liên kết video YouTube." },
+        { error: t.api.missingUrl },
         { status: 400 },
       );
     }
@@ -63,7 +66,7 @@ export async function POST(request: Request) {
     if (!videoId) {
       console.log("[generate-lesson] Invalid URL — no video ID extracted");
       return NextResponse.json(
-        { error: "Liên kết YouTube không hợp lệ." },
+        { error: t.api.invalidUrl },
         { status: 400 },
       );
     }
@@ -78,10 +81,7 @@ export async function POST(request: Request) {
     if (!rateLimit.success) {
       console.log("[generate-lesson] Rate limit exceeded for IP:", ip);
       return NextResponse.json(
-        {
-          error:
-            "Bạn đã tạo quá nhiều bài học trong một giờ qua (tối đa 5 bài/giờ). Vui lòng thử lại sau ít phút nhé! ⏳",
-        },
+        { error: t.api.rateLimited },
         { status: 429 },
       );
     }
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
         );
         return NextResponse.json(
           {
-            error: PRO_DAILY_LIMIT_MESSAGE,
+            error: t.api.proDailyLimit,
             code: PRO_DAILY_LIMIT_CODE,
           },
           { status: 429 },
@@ -118,15 +118,15 @@ export async function POST(request: Request) {
       }
     }
 
-    const rawTranscript = await getTranscriptText(videoId);
+    const rawTranscript = await getTranscriptText(videoId, t);
     const transcript = truncateTranscript(rawTranscript);
 
     console.log(
       `[generate-lesson] Generating lesson with Claude (tier: ${
         includeDepth ? "pro" : "free"
-      })...`,
+      }, locale: ${locale})...`,
     );
-    const lesson = await generateLesson(transcript, { includeDepth });
+    const lesson = await generateLesson(transcript, { includeDepth, locale });
     console.log("[generate-lesson] Lesson generated successfully");
 
     return NextResponse.json({ lesson, videoId });
@@ -140,7 +140,7 @@ export async function POST(request: Request) {
     // Anything else can carry internal detail — a provider's raw response
     // body, an SDK error, a missing env var — so it never reaches the client.
     return NextResponse.json(
-      { error: "Đã xảy ra lỗi khi tạo bài học. Bạn thử lại giúp mình nhé." },
+      { error: t.api.generateFailed },
       { status: 500 },
     );
   }

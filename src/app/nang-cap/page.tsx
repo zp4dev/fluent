@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 
 import UpgradeCheckout from "@/components/UpgradeCheckout";
+import { getServerDictionary } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Nâng cấp Pro — Fluent",
-  description:
-    "Nâng cấp Fluent Pro để mở khóa nghĩa mở rộng, cụm từ đi kèm và họ từ vựng cho mọi từ.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerDictionary();
+
+  return {
+    title: t.meta.upgradeTitle,
+    description: t.meta.upgradeDescription,
+  };
+}
 
 export default function UpgradePage() {
   return (

@@ -2,7 +2,10 @@ import { Analytics } from '@vercel/analytics/react';
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 
-import ThemeToggle from "@/components/ThemeToggle";
+import HeaderControls from "@/components/HeaderControls";
+import { LOCALE_INFO } from "@/lib/i18n/config";
+import { I18nProvider } from "@/lib/i18n/context";
+import { getServerDictionary, getServerLocale } from "@/lib/i18n/server";
 
 import "./globals.css";
 
@@ -12,19 +15,28 @@ const nunito = Nunito({
   weight: ["400", "600", "700", "800"],
 });
 
-export const metadata: Metadata = {
-  title: "Fluent",
-  description: "Biến mọi video YouTube thành bài học tiếng Anh",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerDictionary();
 
-export default function RootLayout({
+  return {
+    title: t.meta.homeTitle,
+    description: t.meta.homeDescription,
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The locale comes from a cookie, so the server already knows it — unlike the
+  // theme, which lives in localStorage and needs the inline script below. That
+  // is the whole reason language is stored in a cookie: no flash, no mismatch.
+  const locale = await getServerLocale();
+
   return (
     <html
-      lang="vi"
+      lang={LOCALE_INFO[locale].htmlLang}
       data-theme="light"
       className={`${nunito.variable} h-full antialiased`}
       suppressHydrationWarning
@@ -40,9 +52,11 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans">
-        <ThemeToggle />
-        {children}
-        <Analytics />
+        <I18nProvider initialLocale={locale}>
+          <HeaderControls />
+          {children}
+          <Analytics />
+        </I18nProvider>
       </body>
     </html>
   );

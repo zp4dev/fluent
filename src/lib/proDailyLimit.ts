@@ -2,12 +2,11 @@ import { Ratelimit } from "@upstash/ratelimit";
 
 import {
   PRO_DAILY_LIMIT_CODE,
-  PRO_DAILY_LIMIT_MESSAGE,
 } from "@/lib/proDailyLimitShared";
 import { createRateLimiter } from "@/lib/ratelimit";
 import { isValidEmail, normalizeEmail } from "@/lib/validateEmail";
 
-export { PRO_DAILY_LIMIT_CODE, PRO_DAILY_LIMIT_MESSAGE };
+export { PRO_DAILY_LIMIT_CODE };
 
 /**
  * Quiet fair-use cap for Pro lesson generation: 10 lessons per calendar day.

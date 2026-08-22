@@ -1,6 +1,7 @@
 "use client";
 
 import SpeakButton from "@/components/SpeakButton";
+import { useI18n } from "@/lib/i18n/context";
 import type { IdiomItem } from "@/types/lesson";
 
 interface IdiomsSectionProps {
@@ -8,15 +9,17 @@ interface IdiomsSectionProps {
 }
 
 export default function IdiomsSection({ items }: IdiomsSectionProps) {
+  const { t } = useI18n();
+
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-border bg-highlight p-6 py-16 text-center">
         <p className="text-4xl">💬</p>
         <p className="mt-4 text-lg font-bold text-heading">
-          Không có thành ngữ hoặc tiếng lóng trong bài này
+          {t.idioms.emptyTitle}
         </p>
         <p className="mt-2 text-sm text-body">
-          Hãy thử video khác có nhiều cách nói tự nhiên hơn.
+          {t.idioms.emptyBody}
         </p>
       </div>
     );

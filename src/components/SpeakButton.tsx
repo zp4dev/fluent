@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { useI18n } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n/format";
+
 // NOTE: This mirrors lucide-react's `Volume2` icon inline so the feature works
 // without the dependency installed. To use the real icon later, replace the
 // `VolumeIcon` below with `import { Volume2 } from "lucide-react";` and render
@@ -40,6 +43,7 @@ export default function SpeakButton({
   className = "",
   label,
 }: SpeakButtonProps) {
+  const { t } = useI18n();
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Reset speaking state if the component unmounts mid-utterance.
@@ -82,8 +86,8 @@ export default function SpeakButton({
     <button
       type="button"
       onClick={handleSpeak}
-      aria-label={label ?? `Nghe phát âm: ${text}`}
-      title="Nghe phát âm"
+      aria-label={label ?? fmt(t.speak.aria, { text })}
+      title={t.speak.title}
       className={`inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full p-1.5 text-primary transition ease-smooth hover:bg-highlight hover:text-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         isSpeaking ? "animate-pulse bg-highlight" : ""
       } ${className}`}

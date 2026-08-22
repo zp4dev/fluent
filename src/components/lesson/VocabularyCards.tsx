@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import SpeakButton from "@/components/SpeakButton";
 import { CHECKOUT_URL } from "@/lib/checkout";
+import { useI18n } from "@/lib/i18n/context";
+import { rich } from "@/lib/i18n/format";
 import type { VocabularyItem } from "@/types/lesson";
 
 const STAGGER_MS = 150;
@@ -41,6 +43,7 @@ function VocabularyCard({
   onSelect,
   onToggleExtras,
 }: VocabularyCardProps) {
+  const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
   // Whether the back-face content overflows below the current scroll position
   // (i.e. there's more to see). Drives the bottom fade + chevron.
@@ -84,7 +87,7 @@ function VocabularyCard({
   // Deep-amber pill so the yellow ✨ stays clearly visible.
   const previewTag = isPreview ? (
     <span className="absolute right-3 top-3 z-10 whitespace-nowrap rounded-full bg-[#F2555A] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#FFFFFF] shadow-sm">
-      ✨ Pro
+      {t.vocabulary.proTag}
     </span>
   ) : null;
 
@@ -107,7 +110,7 @@ function VocabularyCard({
         <div className="flip-face flex flex-col items-center justify-center rounded-2xl border-2 border-border bg-card p-6 shadow-sm">
           {previewTag}
           <span className="shrink-0 text-xs font-bold uppercase tracking-wider text-primary">
-            Chạm để xem
+            {t.vocabulary.tapToReveal}
           </span>
           <div className="mt-2 flex w-full items-center justify-center gap-2">
             <p className="line-clamp-3 break-words text-center text-xl font-bold leading-snug text-heading sm:text-2xl">
@@ -167,7 +170,7 @@ function VocabularyCard({
               {meanings.length > 0 ? (
                 <div className="shrink-0 space-y-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-primary">
-                    Nghĩa &amp; ví dụ
+                    {t.vocabulary.meaningsAndExamples}
                   </p>
                   {meanings.map((meaning, index) => (
                     <div
@@ -210,7 +213,7 @@ function VocabularyCard({
                     aria-expanded={extrasOpen}
                     className="inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-primary transition ease-smooth hover:text-primary-hover"
                   >
-                    {extrasOpen ? "Thu gọn" : "Xem thêm"}
+                    {extrasOpen ? t.common.showLess : t.common.showMore}
                     <svg
                       width="12"
                       height="12"
@@ -236,7 +239,7 @@ function VocabularyCard({
                       {collocations.length > 0 ? (
                         <div>
                           <p className="mb-1 text-xs font-bold uppercase tracking-wide text-primary">
-                            Cụm từ thường gặp
+                            {t.vocabulary.collocations}
                           </p>
                           <div className="flex flex-wrap gap-1.5">
                             {collocations.map((collocation, index) => (
@@ -254,7 +257,7 @@ function VocabularyCard({
                       {wordFamily.length > 0 ? (
                         <div>
                           <p className="mb-1 text-xs font-bold uppercase tracking-wide text-primary">
-                            Họ từ vựng
+                            {t.vocabulary.wordFamily}
                           </p>
                           <ul className="space-y-0.5">
                             {wordFamily.map((relative, index) => (
@@ -319,6 +322,7 @@ export default function VocabularyCards({
   onReview,
   isPro = false,
 }: VocabularyCardsProps) {
+  const { t } = useI18n();
   const [flippedWord, setFlippedWord] = useState<string | null>(null);
   // Which cards have their extra "depth" details (collocations + word family)
   // expanded. Kept separate from the flip state so cards stay scannable.
@@ -390,14 +394,19 @@ export default function VocabularyCards({
       {/* Single upsell line below the vocabulary section (free users only). */}
       {!isPro ? (
         <p className="mt-6 text-center text-sm leading-6 text-body sm:text-left">
-          Bản Pro mở khóa nghĩa mở rộng, cụm từ đi kèm và họ từ vựng cho{" "}
-          <span className="font-bold">mọi từ</span>.{" "}
-          <Link
-            href={CHECKOUT_URL}
-            className="font-bold text-primary underline-offset-2 transition ease-smooth hover:text-primary-hover hover:underline"
-          >
-            Nâng cấp Pro ☕
-          </Link>
+          {rich(t.vocabulary.upsell, {
+            everyWord: (
+              <span className="font-bold">{t.vocabulary.upsellEveryWord}</span>
+            ),
+            cta: (
+              <Link
+                href={CHECKOUT_URL}
+                className="font-bold text-primary underline-offset-2 transition ease-smooth hover:text-primary-hover hover:underline"
+              >
+                {t.vocabulary.upsellCta}
+              </Link>
+            ),
+          })}
         </p>
       ) : null}
     </div>

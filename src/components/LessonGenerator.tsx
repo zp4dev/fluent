@@ -7,6 +7,8 @@ import EmailVerification from "@/components/EmailVerification";
 import LessonDisplay from "@/components/LessonDisplay";
 import SavedLessons from "@/components/SavedLessons";
 import { CHECKOUT_URL } from "@/lib/checkout";
+import { useI18n } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n/format";
 import { isMaintenanceMode } from "@/lib/maintenance";
 import { PRO_DAILY_LIMIT_CODE } from "@/lib/proDailyLimitShared";
 import { SAMPLE_LESSON } from "@/lib/sampleLesson";
@@ -34,6 +36,7 @@ const readDevFlag = () =>
 const devFlagOnServer = () => false;
 
 export default function LessonGenerator() {
+  const { t, locale } = useI18n();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,10 +79,12 @@ export default function LessonGenerator() {
   // ungated, so this list MUST be empty in the server markup and fill in
   // afterwards — seeding it from storage during render would be a hydration
   // mismatch. The deferred setState is the point here, not an oversight.
+  // Re-runs on locale change too: the list is scoped to the language being
+  // read, since a lesson's translations are generated in that language.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSavedIndex(getSavedIndex());
-  }, []);
+    setSavedIndex(getSavedIndex(locale));
+  }, [locale]);
 
   // Smooth-scroll to the lesson once it has rendered after a saved selection.
   // Uses a slower custom animation (ease-out, ~700ms) that respects
@@ -92,10 +97,10 @@ export default function LessonGenerator() {
   }, [scrollToResult, result]);
 
   function handleSelectSaved(videoId: string) {
-    const saved = getSavedLesson(videoId);
+    const saved = getSavedLesson(videoId, locale);
     if (!saved) {
       // Entry is missing/corrupt — drop it from the index.
-      setSavedIndex(deleteSavedLesson(videoId));
+      setSavedIndex(deleteSavedLesson(videoId, locale));
       return;
     }
     setError(null);
@@ -105,7 +110,7 @@ export default function LessonGenerator() {
   }
 
   function handleDeleteSaved(videoId: string) {
-    setSavedIndex(deleteSavedLesson(videoId));
+    setSavedIndex(deleteSavedLesson(videoId, locale));
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -126,7 +131,7 @@ export default function LessonGenerator() {
     // re-paying Supadata + Claude for a repeat video.
     const videoId = extractVideoId(url);
     if (videoId) {
-      const cached = getSavedLesson(videoId);
+      const cached = getSavedLesson(videoId, locale);
       if (cached) {
         setError(null);
         setResult(cached);
@@ -166,19 +171,16 @@ export default function LessonGenerator() {
           setProDailyBlocked(true);
           return;
         }
-        throw new Error(
-          data.error ??
-            "Bạn đã tạo quá nhiều bài học trong một giờ qua. Vui lòng thử lại sau ít phút nhé! ⏳",
-        );
+        throw new Error(data.error ?? t.api.rateLimitedShort);
       }
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Không thể tạo bài học.");
+        throw new Error(data.error ?? t.api.generateFailedShort);
       }
 
       setResult(data);
       // Persist the freshly generated lesson (and refresh the list).
-      setSavedIndex(saveLesson(data));
+      setSavedIndex(saveLesson(data, locale));
       if (!isPro) {
         increment();
       }
@@ -186,7 +188,7 @@ export default function LessonGenerator() {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Không thể tạo bài học.",
+          : t.api.generateFailedShort,
       );
     } finally {
       setLoading(false);
@@ -207,11 +209,11 @@ export default function LessonGenerator() {
           Fluent
         </h1>
         <p className="mx-auto max-w-xl text-base leading-7 text-body">
-          Biến mọi video YouTube thành bài học tiếng Anh
+          {t.generator.tagline}
         </p>
         {devMode ? (
           <span className="mx-auto flex w-fit items-center gap-1 rounded-full border-2 border-primary bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-sm">
-            🛠️ Dev mode — dữ liệu mẫu
+            {t.generator.devBadge}
           </span>
         ) : null}
       </header>
@@ -224,7 +226,7 @@ export default function LessonGenerator() {
           htmlFor="youtube-url"
           className="block text-sm font-extrabold uppercase tracking-wide text-body"
         >
-          Liên kết YouTube
+          {t.generator.urlLabel}
         </label>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <input
@@ -233,7 +235,7 @@ export default function LessonGenerator() {
             required={!devMode}
             value={url}
             onChange={(event) => setUrl(event.target.value)}
-            placeholder="Dán link YouTube vào đây..."
+            placeholder={t.generator.urlPlaceholder}
             disabled={inputDisabled}
             className="min-w-0 flex-1 rounded-2xl border-2 border-border bg-background px-4 py-4 text-base font-semibold text-heading outline-none placeholder:text-muted transition ease-smooth focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
           />
@@ -245,29 +247,30 @@ export default function LessonGenerator() {
             className="btn-3d cursor-pointer rounded-2xl bg-primary px-10 py-5 text-base font-extrabold uppercase tracking-wide text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {maintenance
-              ? "Tạm dừng"
+              ? t.generator.submitPaused
               : loading
-                ? "Đang tạo bài học..."
-                : "Bắt đầu"}
+                ? t.generator.submitting
+                : t.generator.submit}
           </button>
         </div>
 
         <p className="mt-4 text-center text-sm text-body sm:text-left">
-          {maintenance
-            ? "Tính năng tạo bài học đang tạm dừng để nâng cấp. Quay lại sau ít phút nhé!"
-            : "Hoạt động tốt nhất với video có phụ đề tiếng Anh."}
+          {maintenance ? t.generator.hintPaused : t.generator.hint}
         </p>
 
         {hydrated && licenseHydrated ? (
           isPro ? (
             <p className="mt-2 flex items-center gap-1 text-center text-xs font-bold text-primary sm:text-left">
               <span className="inline-flex items-center gap-1 rounded-full border-2 border-primary bg-highlight px-3 py-1">
-                ☕ Pro
+                {t.generator.proBadge}
               </span>
             </p>
           ) : (
             <p className="mt-2 text-center text-xs font-bold text-primary sm:text-left">
-              Còn lại: {remaining}/{DAILY_LIMIT} lượt hôm nay
+              {fmt(t.generator.remaining, {
+                remaining,
+                limit: DAILY_LIMIT,
+              })}
             </p>
           )
         ) : null}
@@ -277,11 +280,10 @@ export default function LessonGenerator() {
             {showRestore ? (
               <div className="space-y-3">
                 <p className="text-xs font-bold text-body">
-                  Nhập email bạn đã dùng khi thanh toán. Mình gửi mã xác thực
-                  để chắc chắn đúng là bạn.
+                  {t.generator.restoreIntro}
                 </p>
                 <EmailVerification
-                  submitLabel="Mở khóa Pro"
+                  submitLabel={t.generator.restoreSubmit}
                   onVerified={async () => {
                     await refreshSession();
                     setShowRestore(false);
@@ -292,7 +294,7 @@ export default function LessonGenerator() {
                   onClick={() => setShowRestore(false)}
                   className="cursor-pointer text-xs font-bold text-muted underline-offset-2 transition ease-smooth hover:text-body hover:underline"
                 >
-                  Quay lại
+                  {t.common.back}
                 </button>
               </div>
             ) : (
@@ -301,14 +303,14 @@ export default function LessonGenerator() {
                   href={CHECKOUT_URL}
                   className="text-xs font-bold text-primary underline-offset-2 transition ease-smooth hover:underline"
                 >
-                  ☕ Mua Fluent Pro
+                  {t.generator.buyPro}
                 </Link>
                 <button
                   type="button"
                   onClick={() => setShowRestore(true)}
                   className="cursor-pointer text-xs font-bold text-primary underline-offset-2 transition ease-smooth hover:underline"
                 >
-                  Đã mua Pro? Mở khóa tại đây
+                  {t.generator.alreadyBought}
                 </button>
               </div>
             )}
@@ -325,8 +327,7 @@ export default function LessonGenerator() {
       {blockedByProDaily ? (
         <div className="rounded-2xl border-2 border-border bg-highlight px-6 py-6 text-center">
           <p className="text-base font-bold leading-7 text-heading">
-            Hôm nay bạn đã tạo đủ bài học rồi. Ngày mai quay lại tiếp nhé — mình
-            sẽ sẵn sàng! ☕
+            {t.generator.proDailyReached}
           </p>
         </div>
       ) : null}
@@ -334,15 +335,13 @@ export default function LessonGenerator() {
       {blockedByFreeLimit ? (
         <div className="rounded-2xl border-2 border-border bg-highlight px-6 py-6 text-center">
           <p className="text-base font-bold leading-7 text-heading">
-            Hôm nay bạn đã dùng hết {DAILY_LIMIT} lượt miễn phí. Nâng cấp Pro để
-            tạo bài học thoải mái hơn, kèm nghĩa mở rộng, cụm từ đi kèm và họ từ
-            vựng ☕
+            {fmt(t.generator.freeLimitReached, { limit: DAILY_LIMIT })}
           </p>
           <Link
             href={CHECKOUT_URL}
             className="btn-3d mt-5 inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-extrabold uppercase tracking-wide text-white hover:bg-primary-hover"
           >
-            Nâng cấp Pro ☕
+            {t.generator.upgradeCta}
           </Link>
         </div>
       ) : null}
@@ -362,11 +361,9 @@ export default function LessonGenerator() {
             <span className="animate-hourglass">⏳</span>
           </p>
           <p className="mt-4 text-lg font-extrabold text-heading">
-            Đang tạo bài học...
+            {t.generator.loadingTitle}
           </p>
-          <p className="mt-2 text-sm text-body">
-            Thường mất khoảng 20–40 giây.
-          </p>
+          <p className="mt-2 text-sm text-body">{t.generator.loadingHint}</p>
         </div>
       ) : null}
 

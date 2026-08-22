@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sendEmail } from "@/lib/email/resend";
 import { loginCodeEmail } from "@/lib/email/templates";
+import { getServerDictionary, getServerLocale } from "@/lib/i18n/server";
 import {
   checkSendCodeEmailLimit,
   checkSendCodeIpLimit,
@@ -18,19 +19,20 @@ import { isValidEmail, normalizeEmail } from "@/lib/validateEmail";
  * to remove — and there is nothing to enumerate anyway: a code can be sent to
  * any address, it just won't unlock Pro unless that address has an entitlement.
  */
-const SAME_ANSWER = {
-  ok: true,
-  message: "Nếu email hợp lệ, mã xác thực đã được gửi. Bạn kiểm tra hộp thư nhé.",
-};
-
 export async function POST(request: Request) {
+  const t = await getServerDictionary();
+  const locale = await getServerLocale();
+
+  // Always answers the same way — see the note above.
+  const sameAnswer = { ok: true, message: t.auth.codeSentGeneric };
+
   try {
     const body = (await request.json()) as { email?: string };
     const raw = body.email?.trim();
 
     if (!raw || !isValidEmail(raw)) {
       return NextResponse.json(
-        { ok: false, error: "Email chưa hợp lệ. Bạn kiểm tra lại giúp mình nhé." },
+        { ok: false, error: t.auth.invalidEmail },
         { status: 400 },
       );
     }
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Bạn đã yêu cầu mã quá nhiều lần. Thử lại sau một giờ nhé.",
+          error: t.auth.tooManyCodeRequests,
         },
         { status: 429 },
       );
@@ -58,26 +60,26 @@ export async function POST(request: Request) {
       // Nowhere to keep the code means it could never be verified — don't mail
       // out something guaranteed to fail.
       return NextResponse.json(
-        { ok: false, error: "Chưa gửi được mã lúc này. Bạn thử lại sau nhé." },
+        { ok: false, error: t.auth.cannotSendNow },
         { status: 503 },
       );
     }
 
-    const sent = await sendEmail(email, loginCodeEmail(code), `login-${email}-${code}`);
+    const sent = await sendEmail(email, loginCodeEmail(code, t, locale), `login-${email}-${code}`);
 
     if (!sent.ok) {
       return NextResponse.json(
-        { ok: false, error: "Chưa gửi được mã lúc này. Bạn thử lại sau nhé." },
+        { ok: false, error: t.auth.cannotSendNow },
         { status: 502 },
       );
     }
 
     console.log(`[auth] Login code sent to ${email}`);
-    return NextResponse.json(SAME_ANSWER);
+    return NextResponse.json(sameAnswer);
   } catch (error) {
     console.error("[auth] send-code failed:", error);
     return NextResponse.json(
-      { ok: false, error: "Chưa gửi được mã lúc này. Bạn thử lại sau nhé." },
+      { ok: false, error: t.auth.cannotSendNow },
       { status: 500 },
     );
   }

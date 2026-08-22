@@ -1,3 +1,4 @@
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { fetchTranscriptText } from "@/lib/transcript";
 import { extractVideoId as extractVideoIdPure } from "@/lib/videoId";
 
@@ -12,11 +13,14 @@ export function extractVideoId(url: string): string | null {
   return videoId;
 }
 
-export async function getTranscriptText(videoId: string): Promise<string> {
+export async function getTranscriptText(
+  videoId: string,
+  t: Dictionary,
+): Promise<string> {
   console.log("[youtube] Fetching transcript for video ID:", videoId);
 
   try {
-    const text = await fetchTranscriptText(videoId);
+    const text = await fetchTranscriptText(videoId, t);
     console.log(
       "[youtube] Transcript fetched successfully, length:",
       text.length,

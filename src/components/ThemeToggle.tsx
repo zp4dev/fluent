@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react";
 
+import { useI18n } from "@/lib/i18n/context";
+
 const STORAGE_KEY = "fluent.theme";
 
 type Theme = "light" | "dark";
@@ -28,6 +30,7 @@ function readInitialTheme(): Theme {
 }
 
 export default function ThemeToggle() {
+  const { t } = useI18n();
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
   const isDark = theme === "dark";
 
@@ -48,9 +51,9 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
-      title={isDark ? "Chế độ sáng" : "Chế độ tối"}
-      className="fixed right-4 top-4 z-50 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-border bg-card text-heading shadow-sm transition ease-smooth hover:border-primary hover:bg-highlight"
+      aria-label={isDark ? t.theme.toLight : t.theme.toDark}
+      title={isDark ? t.theme.light : t.theme.dark}
+      className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-border bg-card text-heading shadow-sm transition ease-smooth hover:border-primary hover:bg-highlight"
     >
       {isDark ? (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
