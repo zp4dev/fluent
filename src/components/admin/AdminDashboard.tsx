@@ -86,11 +86,6 @@ export default function AdminDashboard({
     }
   }
 
-  async function signOut() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.refresh();
-  }
-
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-6 px-5 py-12 sm:px-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -117,13 +112,6 @@ export default function AdminDashboard({
             className="cursor-pointer rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold text-primary shadow-sm transition ease-smooth hover:border-primary hover:bg-highlight"
           >
             {t.admin.refresh}
-          </button>
-          <button
-            type="button"
-            onClick={signOut}
-            className="cursor-pointer rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold text-muted shadow-sm transition ease-smooth hover:border-wrong hover:text-wrong"
-          >
-            {t.admin.signOut}
           </button>
         </div>
       </header>

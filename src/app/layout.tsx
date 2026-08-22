@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 
 import HeaderControls from "@/components/HeaderControls";
+import { readSession } from "@/lib/authSession";
 import { LOCALE_INFO } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/context";
 import { getServerDictionary, getServerLocale } from "@/lib/i18n/server";
@@ -34,9 +35,12 @@ export default async function RootLayout({
   // Both preferences are cookies, so the server renders the first paint in the
   // right language AND the right theme — no flash, and nothing for the client
   // to correct. A null theme means this browser has not told us yet.
-  const [locale, theme] = await Promise.all([
+  const [locale, theme, session] = await Promise.all([
     getServerLocale(),
     getServerTheme(),
+    // Read here so the logout button is right in the first paint. It is an
+    // HMAC verify on a cookie, not a database round trip.
+    readSession(),
   ]);
 
   const resolvedTheme = theme ?? DEFAULT_THEME;
@@ -60,7 +64,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <I18nProvider initialLocale={locale}>
-          <HeaderControls initialTheme={resolvedTheme} />
+          <HeaderControls initialTheme={resolvedTheme} email={session?.email ?? null} />
           {children}
           <Analytics />
         </I18nProvider>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import EmailVerification from "@/components/EmailVerification";
@@ -134,6 +135,7 @@ function planCopy(id: PlanId, t: Dictionary) {
 
 export default function UpgradeCheckout() {
   const { t } = useI18n();
+  const router = useRouter();
   const [planId, setPlanId] = useState<PlanId>(DEFAULT_PLAN_ID);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -397,7 +399,12 @@ export default function UpgradeCheckout() {
             <EmailVerification
               initialEmail={rememberedEmail}
               submitLabel={t.checkout.verifyEmailSubmit}
-              onVerified={refreshSession}
+              onVerified={async () => {
+                await refreshSession();
+                // Same reason as in LessonGenerator: the header's logout
+                // button comes from the server-rendered session.
+                router.refresh();
+              }}
             />
           )}
         </div>
