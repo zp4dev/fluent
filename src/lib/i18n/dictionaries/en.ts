@@ -216,6 +216,29 @@ const en: Dictionary = {
     monthlyPeriod: "/month",
   },
 
+  admin: {
+    title: "Admin",
+    subtitle: "Sign in with an admin address to continue.",
+    signInSubmit: "Enter admin",
+    notAdmin: "That address is not an admin account.",
+    signedInAs: "Signed in as",
+    signOut: "Sign out",
+    pendingTitle: "Pending orders ({count})",
+    pendingEmpty: "Nothing pending. 🎉",
+    colEmail: "Email",
+    colPlan: "Plan",
+    colAmount: "Amount",
+    colCreated: "Created",
+    activate: "Activate Pro",
+    activating: "Activating...",
+    activateConfirm:
+      "Confirm the transfer from {email} arrived and activate Pro?",
+    activated: "Activated Pro for {email} until {expiresAt}.",
+    activateFailed: "Activation failed.",
+    refresh: "Refresh",
+    backToApp: "Back to the app",
+  },
+
   email: {
     subject: "{code} is your Fluent login code",
     heading: "Your Fluent login code",

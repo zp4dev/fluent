@@ -18,7 +18,7 @@ import { listPendingOrders } from "@/lib/orders";
  *     https://your-app/api/admin/orders
  */
 export async function GET(request: Request) {
-  if (!isAuthorizedAdmin(request)) {
+  if (!(await isAuthorizedAdmin(request))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

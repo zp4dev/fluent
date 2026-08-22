@@ -204,6 +204,28 @@ const zh: Dictionary = {
     monthlyPeriod: "/月",
   },
 
+  admin: {
+    title: "管理后台",
+    subtitle: "请使用管理员邮箱登录以继续。",
+    signInSubmit: "进入管理后台",
+    notAdmin: "该邮箱不是管理员账户。",
+    signedInAs: "当前登录",
+    signOut: "退出登录",
+    pendingTitle: "待核对订单（{count}）",
+    pendingEmpty: "没有待处理的订单。🎉",
+    colEmail: "邮箱",
+    colPlan: "套餐",
+    colAmount: "金额",
+    colCreated: "创建时间",
+    activate: "开通 Pro",
+    activating: "开通中...",
+    activateConfirm: "确认已收到 {email} 的转账并开通 Pro？",
+    activated: "已为 {email} 开通 Pro，有效期至 {expiresAt}。",
+    activateFailed: "开通失败。",
+    refresh: "刷新",
+    backToApp: "返回应用",
+  },
+
   email: {
     subject: "{code} 是你的 Fluent 登录验证码",
     heading: "你的 Fluent 登录验证码",

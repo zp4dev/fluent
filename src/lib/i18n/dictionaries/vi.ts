@@ -221,6 +221,29 @@ const vi = {
     monthlyPeriod: "/tháng",
   },
 
+  admin: {
+    title: "Trang quản trị",
+    subtitle: "Đăng nhập bằng email quản trị để tiếp tục.",
+    signInSubmit: "Vào trang quản trị",
+    notAdmin: "Email này không phải tài khoản quản trị.",
+    signedInAs: "Đang đăng nhập với",
+    signOut: "Đăng xuất",
+    pendingTitle: "Đơn chờ đối soát ({count})",
+    pendingEmpty: "Không có đơn nào đang chờ. 🎉",
+    colEmail: "Email",
+    colPlan: "Gói",
+    colAmount: "Số tiền",
+    colCreated: "Tạo lúc",
+    activate: "Kích hoạt Pro",
+    activating: "Đang kích hoạt...",
+    activateConfirm:
+      "Xác nhận đã nhận được tiền của {email} và kích hoạt Pro?",
+    activated: "Đã kích hoạt Pro cho {email} đến {expiresAt}.",
+    activateFailed: "Kích hoạt thất bại.",
+    refresh: "Tải lại",
+    backToApp: "Về trang chính",
+  },
+
   email: {
     subject: "{code} là mã đăng nhập Fluent của bạn",
     heading: "Mã đăng nhập Fluent",

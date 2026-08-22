@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (!isAuthorizedAdmin(request, body.secret)) {
+  if (!(await isAuthorizedAdmin(request, body.secret))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -21,6 +21,12 @@ interface Props {
   initialEmail?: string;
   /** Defaults to the translated "verify" label when omitted. */
   submitLabel?: string;
+  /**
+   * Which endpoint issues the code. The admin flow points this at its own
+   * route, which refuses non-admin addresses before paying to send anything.
+   * Verification is shared: the code proves the same thing either way.
+   */
+  sendCodeUrl?: string;
   onVerified: () => void | Promise<void>;
 }
 
@@ -33,6 +39,7 @@ const buttonClass =
 export default function EmailVerification({
   initialEmail = "",
   submitLabel,
+  sendCodeUrl = "/api/auth/send-code",
   onVerified,
 }: Props) {
   const { t } = useI18n();
@@ -57,7 +64,7 @@ export default function EmailVerification({
     setError(null);
 
     try {
-      const response = await fetch("/api/auth/send-code", {
+      const response = await fetch(sendCodeUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: candidate }),
