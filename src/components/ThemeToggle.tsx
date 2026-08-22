@@ -7,23 +7,28 @@ const STORAGE_KEY = "fluent.theme";
 type Theme = "light" | "dark";
 
 /**
- * Reads the same source as the inline theme script in layout.tsx, so React's
- * initial state matches what the script already applied to the DOM — see
- * "Syncing with React state" in Next's flash-prevention guide.
+ * Reads the same source as the inline theme script in layout.tsx — a saved
+ * preference, falling back to the OS-level light/dark preference — so
+ * React's initial state matches what the script already applied to the DOM.
+ * See "Syncing with React state" in Next's flash-prevention guide.
  */
-function readStoredTheme(): Theme {
+function readInitialTheme(): Theme {
   if (typeof window === "undefined") {
     return "light";
   }
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === "dark" || stored === "light") {
+      return stored;
+    }
   } catch {
-    return "light";
+    // Storage may be unavailable; fall through to the OS preference.
   }
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(readStoredTheme);
+  const [theme, setTheme] = useState<Theme>(readInitialTheme);
   const isDark = theme === "dark";
 
   const toggle = useCallback(() => {

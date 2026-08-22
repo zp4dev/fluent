@@ -30,11 +30,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Applies a saved theme before first paint, so there's no flash of the
-            wrong theme — see Next's flash-prevention guide. */}
+        {/* Applies the saved theme (or, absent one, the browser's OS-level
+            light/dark preference) before first paint, so there's no flash of
+            the wrong theme — see Next's flash-prevention guide. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("fluent.theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem("fluent.theme");if(!t)t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`,
           }}
         />
       </head>
