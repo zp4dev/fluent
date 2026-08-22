@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import EmailVerification from "@/components/EmailVerification";
@@ -37,6 +38,7 @@ const devFlagOnServer = () => false;
 
 export default function LessonGenerator() {
   const { t, locale } = useI18n();
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -287,6 +289,10 @@ export default function LessonGenerator() {
                   onVerified={async () => {
                     await refreshSession();
                     setShowRestore(false);
+                    // The header's logout button is rendered server-side from
+                    // the session cookie, so it only appears once the server
+                    // re-renders.
+                    router.refresh();
                   }}
                 />
                 <button

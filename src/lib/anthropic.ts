@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+import { getAiProviderConfig, type Provider } from "@/lib/aiProvider";
+
 import { UserFacingError } from "@/lib/errors";
 import { DEFAULT_LOCALE, LOCALE_INFO, type Locale } from "@/lib/i18n/config";
 import { getDictionary, type Dictionary } from "@/lib/i18n/dictionaries";
@@ -186,6 +188,54 @@ interface GenerateLessonOptions {
   locale?: Locale;
 }
 
+/**
+ * The one place the model is actually called.
+ *
+ * Both the real lesson path and the debug console go through here, so what
+ * /admin-dev shows is the request production makes — not a lookalike that can
+ * drift away from it.
+ *
+ * Every supported provider speaks the Anthropic Messages API, so one SDK
+ * client covers all of them; PROVIDER only decides the host's conventions
+ * (see lib/aiProvider.ts).
+ */
+async function requestLesson(
+  transcript: string,
+  includeDepth: boolean,
+  locale: Locale,
+) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not configured.");
+  }
+
+  const config = getAiProviderConfig();
+
+  const client = new Anthropic({
+    apiKey,
+    // Passed explicitly rather than left to the SDK's own env lookup: the SDK
+    // would read ANTHROPIC_BASE_URL raw and miss the /v1 normalisation.
+    baseURL: config.baseUrl,
+    defaultHeaders: config.defaultHeaders,
+  });
+
+  const system = buildSystemPrompt(includeDepth, locale);
+  const userPrompt = `Create an English lesson for ${LOCALE_INFO[locale].promptName} speakers from this YouTube transcript:\n\n${transcript}`;
+
+  const message = await client.messages.create({
+    model: config.model,
+    // Larger output budget for the richer Pro vocabulary schema (meanings,
+    // collocations, word family). Free tier is a bit higher than base to fit
+    // the one full-depth "Pro preview" item.
+    max_tokens: includeDepth ? 8192 : 5120,
+    system,
+    messages: [{ role: "user", content: userPrompt }],
+  });
+
+  return { message, config, system, userPrompt };
+}
+
 export async function generateLesson(
   transcript: string,
   options: GenerateLessonOptions = {},
@@ -193,31 +243,8 @@ export async function generateLesson(
   const includeDepth = options.includeDepth ?? false;
   const locale = options.locale ?? DEFAULT_LOCALE;
   const t = getDictionary(locale);
-  const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured.");
-  }
-
-  const client = new Anthropic({ apiKey });
-
-  const model =
-    process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-6";
-
-  const message = await client.messages.create({
-    model,
-    // Larger output budget for the richer Pro vocabulary schema (meanings,
-    // collocations, word family). Free tier is a bit higher than base to fit
-    // the one full-depth "Pro preview" item.
-    max_tokens: includeDepth ? 8192 : 5120,
-    system: buildSystemPrompt(includeDepth, locale),
-    messages: [
-      {
-        role: "user",
-        content: `Create an English lesson for ${LOCALE_INFO[locale].promptName} speakers from this YouTube transcript:\n\n${transcript}`,
-      },
-    ],
-  });
+  const { message } = await requestLesson(transcript, includeDepth, locale);
 
   console.log("[USAGE]", JSON.stringify(message.usage));
 
@@ -239,4 +266,106 @@ export async function generateLesson(
   }
 
   return parseLesson(textBlock.text, t);
+}
+
+/**
+ * What the model returned, before any of it is trusted.
+ *
+ * For /admin-dev. Nothing throws: a failed call is a RESULT here, not an
+ * exception, because the failure is exactly what the operator opened the page
+ * to look at. The parse is attempted and reported separately from the request,
+ * so "the model answered but the JSON is wrong" is distinguishable from "the
+ * call never landed" — the two have completely different fixes.
+ */
+export interface RawGeneration {
+  ok: boolean;
+  provider: Provider;
+  providerLabel: string;
+  baseUrl: string;
+  model: string;
+  systemPrompt: string;
+  userPrompt: string;
+  /** Present when the call succeeded. */
+  stopReason?: string | null;
+  usage?: unknown;
+  text?: string;
+  /** Whether the raw text parsed into a valid lesson, and why not if it did not. */
+  parsedOk?: boolean;
+  parseError?: string;
+  /** Present when the call itself failed. */
+  error?: string;
+  errorStatus?: number;
+  errorBody?: string;
+}
+
+export async function generateLessonRaw(
+  transcript: string,
+  options: GenerateLessonOptions = {},
+): Promise<RawGeneration> {
+  const includeDepth = options.includeDepth ?? false;
+  const locale = options.locale ?? DEFAULT_LOCALE;
+  const t = getDictionary(locale);
+  const config = getAiProviderConfig();
+
+  let system = "";
+  let user = "";
+
+  try {
+    const result = await requestLesson(transcript, includeDepth, locale);
+    system = result.system;
+    user = result.userPrompt;
+
+    const textBlock = result.message.content.find(
+      (block) => block.type === "text",
+    );
+    const text = textBlock && textBlock.type === "text" ? textBlock.text : "";
+
+    let parsedOk = false;
+    let parseError: string | undefined;
+
+    try {
+      parseLesson(text, t);
+      parsedOk = true;
+    } catch (error) {
+      parseError = error instanceof Error ? error.message : String(error);
+    }
+
+    return {
+      ok: true,
+      provider: config.provider,
+      providerLabel: config.label,
+      baseUrl: result.config.baseUrl,
+      model: result.config.model,
+      systemPrompt: system,
+      userPrompt: user,
+      stopReason: result.message.stop_reason,
+      usage: result.message.usage,
+      text,
+      parsedOk,
+      parseError,
+    };
+  } catch (error) {
+    // An SDK error carries the HTTP status and the provider's raw body — the
+    // two things that actually identify a misrouted base URL or a bad key.
+    const status =
+      typeof (error as { status?: unknown }).status === "number"
+        ? (error as { status: number }).status
+        : undefined;
+
+    return {
+      ok: false,
+      provider: config.provider,
+      providerLabel: config.label,
+      baseUrl: config.baseUrl,
+      model: config.model,
+      systemPrompt: system || buildSystemPrompt(includeDepth, locale),
+      userPrompt: user,
+      error: error instanceof Error ? error.message : String(error),
+      errorStatus: status,
+      errorBody:
+        typeof (error as { error?: unknown }).error === "object"
+          ? JSON.stringify((error as { error: unknown }).error)
+          : undefined,
+    };
+  }
 }

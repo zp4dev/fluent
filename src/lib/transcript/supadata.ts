@@ -43,10 +43,13 @@ async function pollSupadataJob(jobId: string, apiKey: string): Promise<string> {
   throw new Error("Supadata hết thời gian chờ khi lấy phụ đề.");
 }
 
-export async function fetchSupadataTranscript(
-  videoId: string,
-  apiKey: string,
-): Promise<string> {
+/**
+ * One builder for the transcript URL, shared by the real fetch and the debug
+ * console, so what /admin-dev reports is the request production makes. The
+ * key travels in a header, never the query string, so this URL is safe to
+ * display.
+ */
+function transcriptUrl(videoId: string): string {
   const params = new URLSearchParams({
     videoId,
     lang: "en",
@@ -54,12 +57,46 @@ export async function fetchSupadataTranscript(
     mode: "native",
   });
 
-  const response = await fetch(
-    `${SUPADATA_BASE}/youtube/transcript?${params.toString()}`,
-    {
-      headers: { "x-api-key": apiKey },
-    },
-  );
+  return `${SUPADATA_BASE}/youtube/transcript?${params.toString()}`;
+}
+
+export interface SupadataRaw {
+  url: string;
+  status: number;
+  ok: boolean;
+  /** Untouched response body — the point of the debug view. */
+  body: string;
+}
+
+/**
+ * The first Supadata call, unparsed and unjudged. For /admin-dev only.
+ *
+ * Deliberately does NOT follow the async `jobId` path: the operator is here to
+ * see what the endpoint actually returned, and quietly polling for 30s would
+ * replace that with something else.
+ */
+export async function fetchSupadataRaw(
+  videoId: string,
+  apiKey: string,
+): Promise<SupadataRaw> {
+  const url = transcriptUrl(videoId);
+  const response = await fetch(url, { headers: { "x-api-key": apiKey } });
+
+  return {
+    url,
+    status: response.status,
+    ok: response.ok,
+    body: await response.text(),
+  };
+}
+
+export async function fetchSupadataTranscript(
+  videoId: string,
+  apiKey: string,
+): Promise<string> {
+  const response = await fetch(transcriptUrl(videoId), {
+    headers: { "x-api-key": apiKey },
+  });
 
   if (!response.ok) {
     const body = await response.text();

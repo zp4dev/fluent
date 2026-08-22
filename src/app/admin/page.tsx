@@ -4,15 +4,20 @@ import { redirect } from "next/navigation";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminLogin from "@/components/admin/AdminLogin";
 import { isAdminEmail } from "@/lib/admin";
+import { getServerDictionary } from "@/lib/i18n/server";
 import { readSession } from "@/lib/authSession";
 import { listPendingOrders } from "@/lib/orders";
 import { listAdminUsers } from "@/lib/userAdmin";
 
-export const metadata: Metadata = {
-  title: "Admin — Fluent",
-  // An internal console has no business in a search index.
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerDictionary();
+
+  return {
+    title: `${t.admin.title} — Fluent`,
+    // An internal console has no business in a search index.
+    robots: { index: false, follow: false },
+  };
+}
 
 /**
  * The admin console.
