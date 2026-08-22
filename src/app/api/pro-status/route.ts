@@ -1,36 +1,27 @@
 import { NextResponse } from "next/server";
 
-import { getEntitlement, isEntitlementActive } from "@/lib/entitlements";
-import { isValidEmail } from "@/lib/validateEmail";
+import { readSession } from "@/lib/authSession";
+import { isProByEmail } from "@/lib/entitlements";
 
 /**
- * Tells the client whether an email currently has Pro, so the UI can unlock
- * without a license key. POST (not GET) so the address stays out of URLs and
- * access logs.
+ * Whether the signed-in browser has Pro.
  *
- * This is not the security boundary — Pro-only generation is re-checked
- * server-side in /api/generate-lesson.
+ * Superseded the old POST {email} form, which would answer for any address
+ * given to it and so let anyone confirm who was a paying customer. There is no
+ * parameter now: the only address it will talk about is the session's own.
+ *
+ * Still not the security boundary — Pro-only generation is re-checked in
+ * /api/generate-lesson.
  */
-export async function POST(request: Request) {
+export async function GET() {
   try {
-    const body = (await request.json()) as { email?: string };
-    const email = body.email?.trim();
+    const session = await readSession();
 
-    if (!email || !isValidEmail(email)) {
+    if (!session) {
       return NextResponse.json({ isPro: false });
     }
 
-    const entitlement = await getEntitlement(email);
-
-    if (!isEntitlementActive(entitlement)) {
-      return NextResponse.json({ isPro: false });
-    }
-
-    return NextResponse.json({
-      isPro: true,
-      plan: entitlement?.plan ?? null,
-      expiresAt: entitlement?.expiresAt ?? null,
-    });
+    return NextResponse.json({ isPro: await isProByEmail(session.email) });
   } catch (error) {
     console.error("[pro-status] Failed:", error);
     return NextResponse.json({ isPro: false }, { status: 500 });

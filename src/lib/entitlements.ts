@@ -70,6 +70,10 @@ export async function isProByEmail(
  *
  * Renewals stack: if the current entitlement hasn't lapsed yet, the new period
  * is added on top of the remaining time rather than truncating it.
+ *
+ * THROWS if the entitlement can't actually be persisted. Money has already
+ * changed hands by the time this runs, so a silent no-op would leave the admin
+ * believing a buyer has Pro when they have nothing.
  */
 export async function grantPro(input: {
   email: string;
@@ -98,14 +102,25 @@ export async function grantPro(input: {
   };
 
   const redis = getRedis();
+
   if (!redis) {
-    console.warn(
+    console.error(
       "[entitlements] Upstash env vars not set — entitlement NOT saved:",
       JSON.stringify(entitlement),
     );
-    return entitlement;
+    throw new Error("Cannot grant Pro: Upstash Redis is not configured.");
   }
 
-  await redis.set(proKey(email), entitlement);
+  try {
+    await redis.set(proKey(email), entitlement);
+  } catch (error) {
+    console.error(
+      "[entitlements] Failed to save entitlement:",
+      JSON.stringify(entitlement),
+      error,
+    );
+    throw new Error("Cannot grant Pro: the entitlement could not be saved.");
+  }
+
   return entitlement;
 }

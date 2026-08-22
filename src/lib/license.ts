@@ -1,4 +1,6 @@
-import { Redis } from "@upstash/redis";
+import { createHash } from "node:crypto";
+
+import { getRedis } from "@/lib/redis";
 
 /**
  * Server-side license validation used to gate Pro-only content (e.g. the
@@ -13,22 +15,6 @@ import { Redis } from "@upstash/redis";
 const CACHE_PREFIX = "fluent-license:";
 const VALID_TTL_SECONDS = 60 * 60 * 24; // 24h
 const INVALID_TTL_SECONDS = 60 * 60; // 1h
-
-let cachedRedis: Redis | null = null;
-let redisInitialized = false;
-
-function getRedis(): Redis | null {
-  if (redisInitialized) {
-    return cachedRedis;
-  }
-  redisInitialized = true;
-
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  cachedRedis = url && token ? new Redis({ url, token }) : null;
-  return cachedRedis;
-}
 
 async function callLemonSqueezy(licenseKey: string): Promise<boolean> {
   const headers: Record<string, string> = {
@@ -74,7 +60,9 @@ export async function isProLicense(
   }
 
   const redis = getRedis();
-  const cacheKey = `${CACHE_PREFIX}${key}`;
+  // Hash the key so Redis never holds a license key in the clear, and a
+  // brute-force sweep can't stuff the keyspace with attacker-chosen values.
+  const cacheKey = `${CACHE_PREFIX}${createHash("sha256").update(key).digest("hex")}`;
 
   if (redis) {
     try {

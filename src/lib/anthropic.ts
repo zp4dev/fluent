@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+import { UserFacingError } from "@/lib/errors";
 import type { Lesson } from "@/types/lesson";
 
 // Depth fields (meanings, collocations, wordFamily) are Pro-only. They are kept
@@ -123,11 +124,26 @@ function parseLesson(raw: string): Lesson {
   const parsed = JSON.parse(stripJsonFences(raw)) as Lesson;
 
   if (!parsed.title || !parsed.vocabulary?.length || parsed.quiz?.length !== 5) {
-    throw new Error("Claude trả về cấu trúc bài học không đầy đủ.");
+    throw new UserFacingError("Claude trả về cấu trúc bài học không đầy đủ.");
   }
 
   if (parsed.exampleSentences?.length !== 3) {
-    throw new Error("Claude trả về số câu ví dụ không hợp lệ.");
+    throw new UserFacingError("Claude trả về số câu ví dụ không hợp lệ.");
+  }
+
+  // `correctAnswer` is typed 0|1|2|3, but nothing enforces that at runtime. An
+  // out-of-range index makes the quiz silently unanswerable (no option ever
+  // matches), so reject it here instead of shipping a broken lesson.
+  const quizIsWellFormed = parsed.quiz.every(
+    (question) =>
+      question.options?.length === 4 &&
+      Number.isInteger(question.correctAnswer) &&
+      question.correctAnswer >= 0 &&
+      question.correctAnswer <= 3,
+  );
+
+  if (!quizIsWellFormed) {
+    throw new UserFacingError("Claude trả về câu hỏi trắc nghiệm không hợp lệ.");
   }
 
   return parsed;
@@ -174,10 +190,25 @@ export async function generateLesson(
 
   console.log("[USAGE]", JSON.stringify(message.usage));
 
+  // Check why generation stopped BEFORE parsing. A response cut off at
+  // max_tokens is truncated mid-JSON, which would otherwise surface as an
+  // opaque "Unexpected end of JSON input".
+  if (message.stop_reason === "max_tokens") {
+    throw new UserFacingError(
+      "Bài học dài quá mức cho phép. Bạn thử một video ngắn hơn nhé.",
+    );
+  }
+
+  if (message.stop_reason === "refusal") {
+    throw new UserFacingError(
+      "Nội dung video này không tạo được bài học. Bạn thử video khác nhé.",
+    );
+  }
+
   const textBlock = message.content.find((block) => block.type === "text");
 
   if (!textBlock || textBlock.type !== "text") {
-    throw new Error("Claude không trả về nội dung văn bản.");
+    throw new UserFacingError("Claude không trả về nội dung văn bản.");
   }
 
   return parseLesson(textBlock.text);

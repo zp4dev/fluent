@@ -1,39 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useHydrated, useLocalStorageValue } from "@/lib/browserStore";
 
 const STORAGE_KEY = "fluent.licenseKey";
 
+/**
+ * Reads a grandfathered Lemon Squeezy license key out of localStorage.
+ *
+ * Read-only by design: the redemption UI was removed (commit f1af514) in
+ * favour of restore-by-email, so nothing writes this key any more — but buyers
+ * who already have one stored must keep their Pro access.
+ */
 export function useLicense() {
-  const [licenseKey, setLicenseKey] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const stored = useLocalStorageValue(STORAGE_KEY);
+  const hydrated = useHydrated();
 
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setLicenseKey(stored);
-      }
-    } catch {
-      // Storage may be unavailable; treat as no license.
-    }
-    setHydrated(true);
-  }, []);
-
-  const activate = useCallback((key: string) => {
-    const trimmed = key.trim();
-    setLicenseKey(trimmed);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, trimmed);
-    } catch {
-      // Ignore storage write failures (private mode, quota).
-    }
-  }, []);
+  // An empty stored value reads as "no license", same as never having set one.
+  const licenseKey = stored || null;
 
   return {
     licenseKey,
     isPro: Boolean(licenseKey),
     hydrated,
-    activate,
   };
 }

@@ -1,3 +1,4 @@
+import { UserFacingError } from "@/lib/errors";
 import { fetchDirectTranscript } from "@/lib/transcript/direct";
 import { fetchProxyTranscript } from "@/lib/transcript/proxy";
 import { fetchSupadataTranscript } from "@/lib/transcript/supadata";
@@ -55,7 +56,7 @@ export async function fetchTranscriptText(videoId: string): Promise<string> {
   const strategies = buildStrategies();
 
   if (!strategies.length) {
-    throw new Error(
+    throw new UserFacingError(
       `Không có phương thức lấy phụ đề nào được cấu hình.${deploymentHint()}`,
     );
   }
@@ -82,14 +83,19 @@ export async function fetchTranscriptText(videoId: string): Promise<string> {
     }
   }
 
+  // Only a message written for the reader may be forwarded. A provider error
+  // like `Supadata error (429): {...}` carries their raw response body, so it
+  // is logged above and replaced here.
   const baseMessage =
-    lastError?.message ?? "Không thể lấy phụ đề từ video này.";
+    lastError instanceof UserFacingError
+      ? lastError.message
+      : "Không thể lấy phụ đề từ video này.";
 
   if (process.env.VERCEL === "1" && !process.env.SUPADATA_API_KEY && !process.env.TRANSCRIPT_PROXY_URL) {
-    throw new Error(
+    throw new UserFacingError(
       `YouTube chặn máy chủ Vercel nên không lấy được phụ đề trực tiếp.${deploymentHint()}`,
     );
   }
 
-  throw new Error(`${baseMessage}${deploymentHint()}`);
+  throw new UserFacingError(`${baseMessage}${deploymentHint()}`);
 }

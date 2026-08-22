@@ -1,46 +1,39 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
+import {
+  useHydrated,
+  useLocalStorageValue,
+  writeLocalStorage,
+} from "@/lib/browserStore";
 import { isValidEmail } from "@/lib/validateEmail";
 
 /**
- * AUTH SEAM.
+ * Remembers the last address typed at checkout, purely to prefill the field.
  *
- * Fluent has no accounts yet, so the buyer types their email on the checkout
- * page and it's remembered locally. That email is the key that matches a bank
- * transfer to a person when Pro is activated by hand.
- *
- * When real auth lands, this hook is the only thing that needs to change:
- * return the session's email and mark it read-only, and the checkout UI keeps
- * working as-is.
+ * This used to be the auth seam — the stored address WAS the identity, which
+ * meant anyone who knew a customer's email could use their Pro. Identity now
+ * comes from a verified session (lib/authSession.ts, lib/useSession.ts) and
+ * this value proves nothing on its own. Treat it as a convenience only, and
+ * never as evidence of who someone is.
  */
 
 const STORAGE_KEY = "fluent.buyerEmail";
 
 export function useBuyerEmail() {
-  const [email, setEmailState] = useState("");
-  const [hydrated, setHydrated] = useState(false);
+  const stored = useLocalStorageValue(STORAGE_KEY);
+  const hydrated = useHydrated();
 
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setEmailState(stored);
-      }
-    } catch {
-      // Storage may be unavailable; start with an empty field.
-    }
-    setHydrated(true);
-  }, []);
+  // What the buyer has typed this session, kept verbatim. Storage holds the
+  // trimmed address, but the input must show exactly what was typed — so the
+  // draft wins until they've touched the field.
+  const [draft, setDraft] = useState<string | null>(null);
+  const email = draft ?? stored ?? "";
 
   const setEmail = useCallback((value: string) => {
-    setEmailState(value);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, value.trim());
-    } catch {
-      // Ignore write failures (private mode, quota).
-    }
+    setDraft(value);
+    writeLocalStorage(STORAGE_KEY, value.trim());
   }, []);
 
   return {

@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from "node:crypto";
+
 /**
  * Shared-secret guard for admin routes.
  *
@@ -9,17 +11,18 @@
  * `secret` field in the JSON body, whichever is easier to send.
  */
 
-/** Constant-time compare so a wrong secret can't be narrowed down by timing. */
+/**
+ * Constant-time compare so a wrong secret can't be narrowed down by timing.
+ *
+ * Both sides are hashed first so the comparison always runs over 32 bytes:
+ * `timingSafeEqual` throws on length mismatch, and comparing raw strings would
+ * leak the secret's length through that early exit.
+ */
 function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
+  const digest = (value: string) =>
+    createHash("sha256").update(value, "utf8").digest();
 
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return mismatch === 0;
+  return timingSafeEqual(digest(a), digest(b));
 }
 
 export function isAuthorizedAdmin(

@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+
+import {
+  readLocalStorage,
+  useHydrated,
+  useLocalStorageValue,
+  writeLocalStorage,
+} from "@/lib/browserStore";
 
 export const DAILY_LIMIT = 3;
 
@@ -19,57 +26,40 @@ function todayKey(): string {
   return `${year}-${month}-${day}`;
 }
 
-function readUsage(): DailyUsage {
-  const today = todayKey();
-
-  if (typeof window === "undefined") {
-    return { date: today, count: 0 };
+/**
+ * Today's count. A missing, malformed, or previous-day entry all read as 0 —
+ * the stale record is left alone and simply overwritten by the next
+ * increment, so there's nothing to normalize on load.
+ */
+function countFor(raw: string | null): number {
+  if (!raw) {
+    return 0;
   }
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<DailyUsage>;
-      if (parsed.date === today && typeof parsed.count === "number") {
-        return { date: today, count: parsed.count };
-      }
+    const parsed = JSON.parse(raw) as Partial<DailyUsage>;
+    if (parsed.date === todayKey() && typeof parsed.count === "number") {
+      return parsed.count;
     }
   } catch {
-    // Ignore malformed/inaccessible storage and start fresh.
+    // Malformed storage — start fresh.
   }
 
-  return { date: today, count: 0 };
-}
-
-function writeUsage(usage: DailyUsage): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
-  } catch {
-    // Storage may be unavailable (private mode, quota); fail silently.
-  }
+  return 0;
 }
 
 export function useDailyLimit() {
-  const [count, setCount] = useState(0);
-  const [hydrated, setHydrated] = useState(false);
+  const raw = useLocalStorageValue(STORAGE_KEY);
+  const hydrated = useHydrated();
 
-  useEffect(() => {
-    const usage = readUsage();
-    setCount(usage.count);
-    writeUsage(usage);
-    setHydrated(true);
-  }, []);
+  const count = countFor(raw);
 
   const increment = useCallback(() => {
-    setCount((current) => {
-      const next = current + 1;
-      writeUsage({ date: todayKey(), count: next });
-      return next;
-    });
+    const usage: DailyUsage = {
+      date: todayKey(),
+      count: countFor(readLocalStorage(STORAGE_KEY)) + 1,
+    };
+    writeLocalStorage(STORAGE_KEY, JSON.stringify(usage));
   }, []);
 
   const remaining = Math.max(0, DAILY_LIMIT - count);

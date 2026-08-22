@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import EmailVerification from "@/components/EmailVerification";
 import LessonDisplay from "@/components/LessonDisplay";
 import SavedLessons from "@/components/SavedLessons";
 import { CHECKOUT_URL } from "@/lib/checkout";
@@ -19,25 +20,33 @@ import {
 import { animatedScrollToElement } from "@/lib/smoothScroll";
 import { DAILY_LIMIT, useDailyLimit } from "@/lib/useDailyLimit";
 import { useProStatus } from "@/lib/useProStatus";
-import { isValidEmail } from "@/lib/validateEmail";
 import { extractVideoId } from "@/lib/videoId";
 import type { GenerateLessonResponse } from "@/types/lesson";
 
-type RestoreStatus = "idle" | "checking" | "error";
+/**
+ * `?dev=true` loads sample data instead of calling Claude. Read through
+ * useSyncExternalStore rather than an effect: the server can't see the query
+ * string, so it must render as off and flip on straight after hydration.
+ */
+const neverChanges = () => () => {};
+const readDevFlag = () =>
+  new URLSearchParams(window.location.search).get("dev") === "true";
+const devFlagOnServer = () => false;
 
 export default function LessonGenerator() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateLessonResponse | null>(null);
-  const [devMode, setDevMode] = useState(false);
+  const devMode = useSyncExternalStore(
+    neverChanges,
+    readDevFlag,
+    devFlagOnServer,
+  );
   /** Set when the server returns the quiet Pro fair-use daily cap. */
   const [proDailyBlocked, setProDailyBlocked] = useState(false);
 
   const [showRestore, setShowRestore] = useState(false);
-  const [restoreInput, setRestoreInput] = useState("");
-  const [restoreStatus, setRestoreStatus] = useState<RestoreStatus>("idle");
-  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   const [savedIndex, setSavedIndex] = useState<SavedLessonMeta[]>([]);
   const [scrollToResult, setScrollToResult] = useState(false);
@@ -48,11 +57,14 @@ export default function LessonGenerator() {
   // License-key redemption UI is gone; backend validation stays for grandfathered keys.
   const {
     licenseKey,
-    email: buyerEmail,
     isPro,
     hydrated: licenseHydrated,
-    restore: restorePro,
+    refresh: refreshSession,
   } = useProStatus();
+
+  // In dev mode the sample lesson stands in until a real one is loaded, so the
+  // page has something to render without seeding state from an effect.
+  const displayedResult = result ?? (devMode ? SAMPLE_LESSON : null);
 
   const maintenance = isMaintenanceMode();
   const blockedByFreeLimit = !devMode && !isPro && limitReached;
@@ -60,14 +72,12 @@ export default function LessonGenerator() {
   const blockedByLimit = blockedByFreeLimit || blockedByProDaily;
   const inputDisabled = maintenance || blockedByLimit;
 
+  // Load the saved-lessons index after hydration. SavedLessons renders `items`
+  // ungated, so this list MUST be empty in the server markup and fill in
+  // afterwards — seeding it from storage during render would be a hydration
+  // mismatch. The deferred setState is the point here, not an oversight.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("dev") === "true") {
-      setDevMode(true);
-      setResult(SAMPLE_LESSON);
-    }
-
-    // Load the saved-lessons index (localStorage is browser-only).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSavedIndex(getSavedIndex());
   }, []);
 
@@ -136,11 +146,12 @@ export default function LessonGenerator() {
       const response = await fetch("/api/generate-lesson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Send the license key so the server can unlock Pro vocabulary depth.
+        // Only the license key travels in the body. The buyer's identity comes
+        // from the session cookie the browser sends automatically — passing an
+        // email here would be ignored, and claiming one used to be the bug.
         body: JSON.stringify({
           url,
           licenseKey: licenseKey ?? undefined,
-          email: buyerEmail || undefined,
         }),
       });
 
@@ -179,40 +190,6 @@ export default function LessonGenerator() {
       );
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleRestoreSubmit() {
-    const candidate = restoreInput.trim();
-
-    if (!isValidEmail(candidate)) {
-      setRestoreStatus("error");
-      setRestoreError("Email chưa hợp lệ. Bạn kiểm tra lại giúp mình nhé.");
-      return;
-    }
-
-    setRestoreStatus("checking");
-    setRestoreError(null);
-
-    try {
-      const restored = await restorePro(candidate);
-
-      if (!restored) {
-        setRestoreStatus("error");
-        setRestoreError(
-          "Không tìm thấy Pro cho email này. Kiểm tra lại email bạn đã dùng khi thanh toán nhé.",
-        );
-        return;
-      }
-
-      // Pro just flipped on, so this whole block unmounts — the badge above is
-      // the confirmation.
-      setRestoreInput("");
-      setShowRestore(false);
-      setRestoreStatus("idle");
-    } catch {
-      setRestoreStatus("error");
-      setRestoreError("Chưa kiểm tra được lúc này. Bạn thử lại sau ít phút nhé.");
     }
   }
 
@@ -298,59 +275,21 @@ export default function LessonGenerator() {
         {!isPro ? (
           <div className="mt-4 border-t border-border pt-4">
             {showRestore ? (
-              <div className="space-y-2">
-                <label
-                  htmlFor="restore-email"
-                  className="block text-xs font-bold text-body"
-                >
-                  Nhập email bạn đã dùng khi thanh toán
-                </label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    id="restore-email"
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    value={restoreInput}
-                    onChange={(event) => {
-                      setRestoreInput(event.target.value);
-                      if (restoreStatus === "error") {
-                        setRestoreStatus("idle");
-                        setRestoreError(null);
-                      }
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        void handleRestoreSubmit();
-                      }
-                    }}
-                    placeholder="ban@email.com"
-                    className="min-w-0 flex-1 rounded-xl border-2 border-border bg-background px-4 py-3 text-sm font-semibold text-heading outline-none placeholder:text-muted transition ease-smooth focus:border-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleRestoreSubmit()}
-                    disabled={
-                      restoreStatus === "checking" || !restoreInput.trim()
-                    }
-                    className="cursor-pointer rounded-xl bg-primary px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_3px_0_#CA2851] transition ease-smooth hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-                  >
-                    {restoreStatus === "checking"
-                      ? "Đang kiểm tra..."
-                      : "Khôi phục"}
-                  </button>
-                </div>
-                {restoreError ? (
-                  <p className="text-xs font-bold text-wrong">{restoreError}</p>
-                ) : null}
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-body">
+                  Nhập email bạn đã dùng khi thanh toán. Mình gửi mã xác thực
+                  để chắc chắn đúng là bạn.
+                </p>
+                <EmailVerification
+                  submitLabel="Mở khóa Pro"
+                  onVerified={async () => {
+                    await refreshSession();
+                    setShowRestore(false);
+                  }}
+                />
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowRestore(false);
-                    setRestoreStatus("idle");
-                    setRestoreError(null);
-                  }}
+                  onClick={() => setShowRestore(false)}
                   className="cursor-pointer text-xs font-bold text-muted underline-offset-2 transition ease-smooth hover:text-body hover:underline"
                 >
                   Quay lại
@@ -362,14 +301,14 @@ export default function LessonGenerator() {
                   href={CHECKOUT_URL}
                   className="text-xs font-bold text-primary underline-offset-2 transition ease-smooth hover:underline"
                 >
-                  ☕ Ủng hộ Fluent
+                  ☕ Mua Fluent Pro
                 </Link>
                 <button
                   type="button"
                   onClick={() => setShowRestore(true)}
                   className="cursor-pointer text-xs font-bold text-primary underline-offset-2 transition ease-smooth hover:underline"
                 >
-                  Đã mua Pro? Khôi phục tại đây
+                  Đã mua Pro? Mở khóa tại đây
                 </button>
               </div>
             )}
@@ -395,9 +334,9 @@ export default function LessonGenerator() {
       {blockedByFreeLimit ? (
         <div className="rounded-2xl border-2 border-border bg-highlight px-6 py-6 text-center">
           <p className="text-base font-bold leading-7 text-heading">
-            Fluent hoàn toàn miễn phí! Nếu bạn thấy hữu ích và muốn ủng hộ mình,
-            bạn có thể mua cho mình một ly cà phê để mình tiếp tục phát triển
-            Fluent ☕
+            Hôm nay bạn đã dùng hết {DAILY_LIMIT} lượt miễn phí. Nâng cấp Pro để
+            tạo bài học thoải mái hơn, kèm nghĩa mở rộng, cụm từ đi kèm và họ từ
+            vựng ☕
           </p>
           <Link
             href={CHECKOUT_URL}
@@ -431,14 +370,14 @@ export default function LessonGenerator() {
         </div>
       ) : null}
 
-      {result ? (
+      {displayedResult ? (
         <div
           ref={resultRef}
           className="scroll-mt-4 rounded-3xl border-2 border-border bg-card p-6 shadow-sm sm:p-8"
         >
           <LessonDisplay
-            lesson={result.lesson}
-            videoId={result.videoId}
+            lesson={displayedResult.lesson}
+            videoId={displayedResult.videoId}
             isPro={isPro}
           />
         </div>

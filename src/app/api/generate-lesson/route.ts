@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { generateLesson } from "@/lib/anthropic";
+import { readSession } from "@/lib/authSession";
+import { UserFacingError } from "@/lib/errors";
 import { isMaintenanceMode } from "@/lib/maintenance";
 import { isProUser } from "@/lib/pro";
 import {
@@ -15,6 +17,13 @@ import {
   getTranscriptText,
   truncateTranscript,
 } from "@/lib/youtube";
+
+/**
+ * Fetching a transcript can poll a provider for up to ~30s, and generation is
+ * a non-streaming Claude call on top of that. Without this the route inherits
+ * the platform default and gets cut off mid-request on longer videos.
+ */
+export const maxDuration = 120;
 
 export async function POST(request: Request) {
   try {
@@ -32,9 +41,13 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       url?: string;
       licenseKey?: string;
-      email?: string;
     };
     const url = body.url?.trim();
+
+    // Identity comes from the signed session cookie. An `email` in the body is
+    // ignored entirely — that it used to be trusted is what let anyone with a
+    // customer's address use their Pro.
+    const session = await readSession();
 
     console.log("[generate-lesson] Request received, URL:", url ?? "(empty)");
 
@@ -73,10 +86,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Re-check Pro server-side so the depth fields can't be spoofed by the
-    // client. Passes on either an active order or a valid license key.
+    // Pro on either path: an entitlement for the *verified* address, or a
+    // grandfathered license key held in the browser.
     const includeDepth = await isProUser({
-      email: body.email,
+      email: session?.email,
       licenseKey: body.licenseKey,
     });
 
@@ -85,7 +98,7 @@ export async function POST(request: Request) {
     if (includeDepth) {
       const identifier =
         getProDailyIdentifier({
-          email: body.email,
+          email: session?.email,
           licenseKey: body.licenseKey,
         }) ?? `ip:${ip}`;
 
@@ -120,13 +133,15 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[generate-lesson] Failed:", error);
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Đã xảy ra lỗi khi tạo bài học.";
+    if (error instanceof UserFacingError) {
+      return NextResponse.json({ error: error.message }, { status: 422 });
+    }
 
-    const status = message.includes("ANTHROPIC_API_KEY") ? 500 : 422;
-
-    return NextResponse.json({ error: message }, { status });
+    // Anything else can carry internal detail — a provider's raw response
+    // body, an SDK error, a missing env var — so it never reaches the client.
+    return NextResponse.json(
+      { error: "Đã xảy ra lỗi khi tạo bài học. Bạn thử lại giúp mình nhé." },
+      { status: 500 },
+    );
   }
 }

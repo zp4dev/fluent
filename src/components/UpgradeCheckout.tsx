@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import EmailVerification from "@/components/EmailVerification";
 import { BANK_DETAILS } from "@/lib/bank";
 import {
   DEFAULT_PLAN_ID,
@@ -12,6 +13,7 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { useBuyerEmail } from "@/lib/useBuyerEmail";
+import { useSession } from "@/lib/useSession";
 import { buildVietQrUrl } from "@/lib/vietqr";
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -110,30 +112,27 @@ export default function UpgradeCheckout() {
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const { email, setEmail, hydrated, isValid } = useBuyerEmail();
+  // Remembered from a previous visit purely to prefill the field — it proves
+  // nothing on its own.
+  const { email: rememberedEmail } = useBuyerEmail();
+  const { email, loaded: sessionLoaded, refresh: refreshSession } = useSession();
   const plan = PLANS[planId];
 
-  // Debounced so the QR image isn't re-fetched on every keystroke — it only
-  // refreshes once the buyer pauses typing.
-  const [qrEmail, setQrEmail] = useState("");
-  useEffect(() => {
-    const id = window.setTimeout(() => {
-      setQrEmail(isValid ? email.trim() : "");
-    }, 400);
-    return () => window.clearTimeout(id);
-  }, [email, isValid]);
+  const verified = Boolean(email);
 
+  // The address is fixed once verified, so the QR is built once — no keystroke
+  // debounce needed any more.
   const qrUrl = buildVietQrUrl({
     bankId: BANK_DETAILS.bankId,
     accountNumber: BANK_DETAILS.accountNumber,
     accountName: BANK_DETAILS.accountHolder,
     amount: plan.amount,
-    addInfo: qrEmail || undefined,
+    addInfo: email ?? undefined,
   });
 
   async function handleConfirm() {
-    if (!isValid) {
-      setError("Bạn nhập email trước giúp mình nhé.");
+    if (!verified) {
+      setError("Bạn xác thực email trước giúp mình nhé.");
       return;
     }
 
@@ -141,10 +140,12 @@ export default function UpgradeCheckout() {
     setError(null);
 
     try {
+      // The order's email comes from the session server-side — nothing about
+      // the buyer's identity is sent from here.
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), plan: planId }),
+        body: JSON.stringify({ plan: planId }),
       });
 
       const data = (await response.json()) as {
@@ -179,9 +180,7 @@ export default function UpgradeCheckout() {
           <p className="mx-auto mt-4 max-w-md text-base leading-7 text-body">
             Pro sẽ được kích hoạt trong vài giờ sau khi mình xác nhận thanh
             toán. Bạn sẽ nhận được email xác nhận tại{" "}
-            <span className="font-extrabold text-translation">
-              {email.trim()}
-            </span>
+            <span className="font-extrabold text-translation">{email}</span>
             .
           </p>
 
@@ -336,32 +335,26 @@ export default function UpgradeCheckout() {
           dung chuyển khoản để mình đối chiếu nhé.
         </p>
 
-        {/* Email — the key that matches a transfer to an account */}
+        {/* Email — verified, because reconciliation is done by hand against it */}
         <div className="mt-6">
-          <label
-            htmlFor="buyer-email"
-            className="block text-sm font-extrabold text-heading"
-          >
-            Email của bạn
-          </label>
-          <input
-            id="buyer-email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            value={hydrated ? email : ""}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              if (error) {
-                setError(null);
-              }
-            }}
-            placeholder="ban@email.com"
-            className="mt-2 w-full rounded-2xl border-2 border-border bg-background px-4 py-3.5 text-base font-semibold text-heading outline-none transition ease-smooth placeholder:text-muted focus:border-primary"
-          />
-          <p className="mt-2 text-xs leading-5 text-muted">
-            Mình dùng email này để kích hoạt Pro và gửi xác nhận cho bạn.
-          </p>
+          {!sessionLoaded ? (
+            <p className="text-sm font-bold text-muted">Đang tải...</p>
+          ) : verified ? (
+            <div className="rounded-2xl border-2 border-border bg-highlight px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                Email đã xác thực
+              </p>
+              <p className="mt-1 text-base font-extrabold text-translation">
+                {email}
+              </p>
+            </div>
+          ) : (
+            <EmailVerification
+              initialEmail={rememberedEmail}
+              submitLabel="Xác thực email"
+              onVerified={refreshSession}
+            />
+          )}
         </div>
 
         {/* Transfer note — must match exactly */}
@@ -371,13 +364,10 @@ export default function UpgradeCheckout() {
           </p>
           <div className="mt-1 flex items-center justify-between gap-2">
             <span className="min-w-0 truncate text-base font-extrabold text-translation">
-              {isValid ? email.trim() : "— nhập email phía trên —"}
+              {verified && email ? email : "— xác thực email phía trên —"}
             </span>
-            {isValid ? (
-              <CopyButton
-                value={email.trim()}
-                label="Chép nội dung chuyển khoản"
-              />
+            {verified && email ? (
+              <CopyButton value={email} label="Chép nội dung chuyển khoản" />
             ) : null}
           </div>
         </div>
@@ -394,7 +384,7 @@ export default function UpgradeCheckout() {
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={submitting || !isValid}
+          disabled={submitting || !verified}
           className="btn-3d mt-6 w-full cursor-pointer rounded-2xl bg-primary px-8 py-4 text-base font-extrabold uppercase tracking-wide text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Đang ghi nhận..." : "Mình đã chuyển khoản"}

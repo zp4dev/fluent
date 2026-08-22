@@ -1,6 +1,8 @@
 import { ProxyAgent, fetch as undiciFetch } from "undici";
 import { YoutubeTranscript } from "youtube-transcript";
 
+import { UserFacingError } from "@/lib/errors";
+
 function createProxyFetch(proxyUrl: string): typeof fetch {
   const agent = new ProxyAgent(proxyUrl);
 
@@ -25,7 +27,7 @@ export async function fetchProxyTranscript(
   });
 
   if (!segments.length) {
-    throw new Error("Video này không có phụ đề tiếng Anh.");
+    throw new UserFacingError("Video này không có phụ đề tiếng Anh.");
   }
 
   const text = segments
@@ -34,7 +36,7 @@ export async function fetchProxyTranscript(
     .join(" ");
 
   if (!text) {
-    throw new Error("Phụ đề của video này trống.");
+    throw new UserFacingError("Phụ đề của video này trống.");
   }
 
   return text;
