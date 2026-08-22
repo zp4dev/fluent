@@ -1,48 +1,40 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useI18n } from "@/lib/i18n/context";
+import { isTheme, persistTheme, type Theme } from "@/lib/theme/config";
 
-const STORAGE_KEY = "fluent.theme";
-
-type Theme = "light" | "dark";
-
-/**
- * Reads the same source as the inline theme script in layout.tsx — a saved
- * preference, falling back to the OS-level light/dark preference — so
- * React's initial state matches what the script already applied to the DOM.
- * See "Syncing with React state" in Next's flash-prevention guide.
- */
-function readInitialTheme(): Theme {
-  if (typeof window === "undefined") {
-    return "light";
-  }
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "dark" || stored === "light") {
-      return stored;
-    }
-  } catch {
-    // Storage may be unavailable; fall through to the OS preference.
-  }
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
-export default function ThemeToggle() {
+export default function ThemeToggle({
+  initialTheme,
+}: {
+  initialTheme: Theme;
+}) {
   const { t } = useI18n();
-  const [theme, setTheme] = useState<Theme>(readInitialTheme);
+  // Seeded from the cookie the server read, NOT from localStorage — so the
+  // first client render is identical to the server's and the icon no longer
+  // causes a hydration mismatch.
+  const [theme, setTheme] = useState<Theme>(initialTheme);
   const isDark = theme === "dark";
+
+  // First visit only. With no cookie, the server had to fall back to light
+  // while the bootstrap script applied the OS preference to <html> before
+  // paint; adopt whatever it actually set. On every later visit the cookie
+  // exists, the server already agrees, and this is a no-op.
+  useEffect(() => {
+    const applied = document.documentElement.getAttribute("data-theme");
+
+    if (isTheme(applied)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTheme((current) => (current === applied ? current : applied));
+    }
+  }, []);
 
   const toggle = useCallback(() => {
     setTheme((current) => {
       const next: Theme = current === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", next);
-      try {
-        window.localStorage.setItem(STORAGE_KEY, next);
-      } catch {
-        // Storage may be unavailable; the toggle still works for this session.
-      }
+      persistTheme(next);
       return next;
     });
   }, []);

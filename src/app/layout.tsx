@@ -6,6 +6,8 @@ import HeaderControls from "@/components/HeaderControls";
 import { LOCALE_INFO } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/context";
 import { getServerDictionary, getServerLocale } from "@/lib/i18n/server";
+import { DEFAULT_THEME, themeBootstrapScript } from "@/lib/theme/config";
+import { getServerTheme } from "@/lib/theme/server";
 
 import "./globals.css";
 
@@ -29,31 +31,36 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // The locale comes from a cookie, so the server already knows it — unlike the
-  // theme, which lives in localStorage and needs the inline script below. That
-  // is the whole reason language is stored in a cookie: no flash, no mismatch.
-  const locale = await getServerLocale();
+  // Both preferences are cookies, so the server renders the first paint in the
+  // right language AND the right theme — no flash, and nothing for the client
+  // to correct. A null theme means this browser has not told us yet.
+  const [locale, theme] = await Promise.all([
+    getServerLocale(),
+    getServerTheme(),
+  ]);
+
+  const resolvedTheme = theme ?? DEFAULT_THEME;
 
   return (
     <html
       lang={LOCALE_INFO[locale].htmlLang}
-      data-theme="light"
+      data-theme={resolvedTheme}
       className={`${nunito.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
-        {/* Applies the saved theme (or, absent one, the browser's OS-level
-            light/dark preference) before first paint, so there's no flash of
-            the wrong theme — see Next's flash-prevention guide. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("fluent.theme");if(!t)t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`,
-          }}
-        />
+        {/* Only emitted on a first visit, when no theme cookie exists yet: the
+            OS-level light/dark preference is knowable only in the browser, so
+            it has to be applied before first paint. The script writes the
+            cookie, so from the next request on the markup above is already
+            correct and this script is gone. */}
+        {theme === null ? (
+          <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript() }} />
+        ) : null}
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <I18nProvider initialLocale={locale}>
-          <HeaderControls />
+          <HeaderControls initialTheme={resolvedTheme} />
           {children}
           <Analytics />
         </I18nProvider>
