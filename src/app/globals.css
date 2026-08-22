@@ -1,12 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  /* Marple palette */
+  /* Marple palette (theme-independent brand colors, used by the light theme) */
   --marple-deep: #ca2851;
   --marple-coral: #ff6766;
   --marple-orange: #ffb173;
   --marple-peach: #ffe3b3;
+}
 
+/* Light — the original theme. Set as the default via data-theme on <html>. */
+[data-theme="light"] {
   --background: #fff8f0;
   --foreground: #2d2d2d;
   --card: #ffffff;
@@ -24,6 +27,27 @@
   --wrong-light: #fde8ef;
   --tab-inactive: var(--marple-peach);
   --muted: rgb(45 45 45 / 0.55);
+}
+
+/* Dark — black background with blue accents and white text. */
+[data-theme="dark"] {
+  --background: #05070c;
+  --foreground: #ffffff;
+  --card: #10141f;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --border: #232a3d;
+  --highlight: #16233a;
+  --accent: #60a5fa;
+  --translation: #60a5fa;
+  --heading: #ffffff;
+  --body: #f4f6fb;
+  --correct: #4ade80;
+  --correct-light: #08231a;
+  --wrong: #f87171;
+  --wrong-light: #2a1018;
+  --tab-inactive: #1c2333;
+  --muted: rgb(255 255 255 / 0.6);
 }
 
 @theme inline {
@@ -51,6 +75,9 @@ body {
   background: var(--background);
   color: var(--body);
   font-family: var(--font-nunito), system-ui, sans-serif;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 .bg-gradient-accent {
