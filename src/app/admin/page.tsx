@@ -6,6 +6,7 @@ import AdminLogin from "@/components/admin/AdminLogin";
 import { isAdminEmail } from "@/lib/admin";
 import { readSession } from "@/lib/authSession";
 import { listPendingOrders } from "@/lib/orders";
+import { listAdminUsers } from "@/lib/userAdmin";
 
 export const metadata: Metadata = {
   title: "Admin — Fluent",
@@ -41,12 +42,16 @@ export default async function AdminPage() {
     );
   }
 
-  const orders = await listPendingOrders();
+  const [orders, users] = await Promise.all([
+    listPendingOrders(),
+    listAdminUsers(),
+  ]);
 
   return (
     <main className="min-h-full bg-background">
       <AdminDashboard
         email={session.email}
+        users={users}
         orders={orders.map((order) => ({
           id: order.id,
           email: order.email,

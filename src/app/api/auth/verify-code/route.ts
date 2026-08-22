@@ -5,6 +5,7 @@ import { getServerDictionary } from "@/lib/i18n/server";
 
 import { startSession } from "@/lib/authSession";
 import { checkVerifyCodeLimit, getClientIp } from "@/lib/ratelimit";
+import { recordLogin } from "@/lib/userAdmin";
 import { verifyCode } from "@/lib/verificationCode";
 import { isValidEmail, normalizeEmail } from "@/lib/validateEmail";
 
@@ -54,6 +55,11 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+
+    // Audit line for the admin console. Deliberately after the session is
+    // issued and non-throwing: a bookkeeping failure must not cost someone a
+    // login they just proved they were entitled to.
+    await recordLogin(email, getClientIp(request));
 
     console.log(`[auth] Session started for ${email}`);
     return NextResponse.json({ ok: true, email });

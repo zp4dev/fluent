@@ -12,6 +12,7 @@ import {
   getProDailyIdentifier,
 } from "@/lib/proDailyLimit";
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
+import { countLessonGenerated } from "@/lib/userAdmin";
 import {
   extractVideoId,
   getTranscriptText,
@@ -128,6 +129,11 @@ export async function POST(request: Request) {
     );
     const lesson = await generateLesson(transcript, { includeDepth, locale });
     console.log("[generate-lesson] Lesson generated successfully");
+
+    // Only signed-in users have an address to attribute this to; anonymous
+    // free-tier generations are not counted. Never throws, so it cannot cost
+    // the user a lesson we have already paid Claude for.
+    await countLessonGenerated(session?.email);
 
     return NextResponse.json({ lesson, videoId });
   } catch (error) {

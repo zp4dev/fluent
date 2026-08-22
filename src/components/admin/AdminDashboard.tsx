@@ -8,6 +8,9 @@ import { LOCALE_INFO } from "@/lib/i18n/config";
 import { useI18n } from "@/lib/i18n/context";
 import { fmt } from "@/lib/i18n/format";
 import { formatVnd } from "@/lib/plans";
+import type { AdminUser } from "@/lib/userAdmin";
+
+import UserManager from "./UserManager";
 
 export interface PendingOrderRow {
   id: string;
@@ -20,9 +23,11 @@ export interface PendingOrderRow {
 export default function AdminDashboard({
   email,
   orders,
+  users,
 }: {
   email: string;
   orders: PendingOrderRow[];
+  users: AdminUser[];
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -140,6 +145,8 @@ export default function AdminDashboard({
           {error}
         </p>
       ) : null}
+
+      <UserManager users={users} onNotice={setNotice} onError={setError} />
 
       <section className="rounded-3xl border-2 border-border bg-card p-6 shadow-sm sm:p-8">
         <h2 className="text-lg font-extrabold text-heading">

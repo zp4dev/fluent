@@ -245,6 +245,36 @@ const es: Dictionary = {
     activateFailed: "La activación ha fallado.",
     refresh: "Actualizar",
     backToApp: "Volver a la app",
+    usersTitle: "Usuarios Pro ({count})",
+    usersEmpty: "Todavía no hay usuarios Pro.",
+    colStatus: "Estado",
+    colLessons: "Lecciones",
+    colRemaining: "Restante",
+    colLastLogin: "Último acceso",
+    statusActive: "Activo",
+    statusExpired: "Caducado",
+    statusRevoked: "Revocado",
+    daysLeft: "{days} días",
+    neverLoggedIn: "Nunca",
+    revoke: "Revocar Pro",
+    revoking: "Revocando...",
+    revokeConfirm:
+      "¿Revocar Pro de {email} ahora? Perderá el acceso de inmediato.",
+    revoked: "Pro revocado para {email}.",
+    revokeFailed: "La revocación ha fallado.",
+    createTitle: "Crear un usuario Pro",
+    createHint:
+      "Concede Pro directamente, sin enviar código de verificación. Revisa bien la dirección: un error se lo concede a quien la tenga.",
+    createEmailLabel: "Correo del usuario",
+    createPlanLabel: "Plan",
+    createSubmit: "Conceder Pro",
+    creating: "Concediendo...",
+    createConfirm:
+      "¿Conceder {plan} a {email}? No se envía ninguna confirmación por correo.",
+    created: "Pro concedido a {email} hasta {expiresAt}.",
+    createFailed: "No se ha podido conceder Pro.",
+    trackedSince:
+      "Las lecciones y las IP de acceso solo se registran desde que se lanzó esta función; los usuarios existentes muestran 0 hasta que vuelvan a usar la app.",
   },
 
   email: {
