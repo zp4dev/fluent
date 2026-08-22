@@ -322,6 +322,159 @@ export function saveLesson(
 }
 
 /**
+ * One lesson as it travels in a backup file: the index metadata plus the full
+ * payload, so a restore can rebuild both halves of storage from the file alone.
+ */
+export interface SavedLessonBackupEntry {
+  videoId: string;
+  locale: Locale;
+  savedAt: number;
+  title: string;
+  vocabCount: number;
+  response: GenerateLessonResponse;
+}
+
+/**
+ * Every saved lesson in this browser, ACROSS ALL LANGUAGES.
+ *
+ * Deliberately not scoped to the current locale the way the list UI is: this
+ * feeds a backup, and a backup that quietly leaves out the lessons you saved
+ * while reading in another language is worse than no backup at all.
+ *
+ * Index entries whose payload has gone missing are skipped rather than exported
+ * as empty shells.
+ */
+export function getAllSavedLessons(): SavedLessonBackupEntry[] {
+  if (!isBrowser()) {
+    return [];
+  }
+
+  const entries: SavedLessonBackupEntry[] = [];
+
+  for (const meta of readFullIndex()) {
+    const response = getSavedLesson(meta.videoId, meta.locale);
+
+    if (!response) {
+      continue;
+    }
+
+    entries.push({
+      videoId: meta.videoId,
+      locale: meta.locale,
+      savedAt: meta.savedAt,
+      title: meta.title,
+      vocabCount: meta.vocabCount,
+      response,
+    });
+  }
+
+  return entries;
+}
+
+export interface ImportResult {
+  /** Lessons written to storage. */
+  imported: number;
+  /** Lessons already present in a same-or-newer copy. */
+  skipped: number;
+  /** Lessons that would not fit even after evicting older ones. */
+  failed: number;
+  /** The refreshed index for the language being read. */
+  index: SavedLessonMeta[];
+}
+
+/**
+ * Merge backup entries into storage.
+ *
+ * MERGE, never replace: an import must not be able to destroy lessons that are
+ * only in this browser. Where both sides have the same video in the same
+ * language, the newer `savedAt` wins — re-importing an old backup should not
+ * roll a lesson back.
+ *
+ * Entries are written one at a time (rather than built up and written once) so
+ * a browser that runs out of quota half way through still keeps everything it
+ * managed to store, and can report exactly how much did not fit.
+ */
+export function importSavedLessons(
+  entries: SavedLessonBackupEntry[],
+  locale: Locale,
+): ImportResult {
+  if (!isBrowser()) {
+    return { imported: 0, skipped: 0, failed: 0, index: [] };
+  }
+
+  let index = readFullIndex();
+  let imported = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  const isSame = (entry: SavedLessonMeta, candidate: SavedLessonBackupEntry) =>
+    entry.videoId === candidate.videoId && entry.locale === candidate.locale;
+
+  for (const entry of entries) {
+    const existing = index.find((item) => isSame(item, entry));
+
+    if (existing && existing.savedAt >= entry.savedAt) {
+      skipped += 1;
+      continue;
+    }
+
+    const meta: SavedLessonMeta = {
+      videoId: entry.videoId,
+      title: entry.title,
+      vocabCount: entry.vocabCount,
+      savedAt: entry.savedAt,
+      version: SAVED_LESSON_SCHEMA_VERSION,
+      locale: entry.locale,
+    };
+
+    const stored: StoredLesson = {
+      version: SAVED_LESSON_SCHEMA_VERSION,
+      savedAt: entry.savedAt,
+      response: entry.response,
+    };
+
+    const candidateIndex = [
+      meta,
+      ...index.filter((item) => !isSame(item, entry)),
+    ];
+
+    const write = trySetWithEviction(
+      lessonKey(entry.videoId, entry.locale),
+      JSON.stringify(stored),
+      candidateIndex,
+    );
+
+    // Eviction may have dropped entries from storage whether or not the write
+    // itself landed, so the returned index is the truth either way.
+    if (!write.ok) {
+      index = write.index.filter((item) => !isSame(item, entry));
+      failed += 1;
+      continue;
+    }
+
+    index = write.index.some((item) => isSame(item, entry))
+      ? write.index
+      : [meta, ...write.index];
+    imported += 1;
+  }
+
+  const indexWrite = trySetWithEviction(
+    INDEX_KEY,
+    JSON.stringify(index),
+    index,
+  );
+
+  return {
+    imported,
+    skipped,
+    failed,
+    index: indexWrite.ok
+      ? index.filter((entry) => entry.locale === locale)
+      : getSavedIndex(locale),
+  };
+}
+
+/**
  * Delete a saved lesson: both its lesson key and its index entry.
  * Returns the updated index.
  */

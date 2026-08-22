@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import { getAiProviderConfig, type Provider } from "@/lib/aiProvider";
 
+import { normalizeCefr } from "@/lib/cefr";
+import { ASK_MODEL_FOR_CEFR, lookupCefr } from "@/lib/cefrLexicon";
 import { UserFacingError } from "@/lib/errors";
 import { DEFAULT_LOCALE, LOCALE_INFO, type Locale } from "@/lib/i18n/config";
 import { getDictionary, type Dictionary } from "@/lib/i18n/dictionaries";
@@ -21,17 +23,9 @@ import type { Lesson } from "@/types/lesson";
 // in a single block here so the free-tier prompt can omit them cleanly, and so
 // the paid feature can be toggled server-side via `includeDepth`.
 const vocabDepthSchema = (lang: string) => `,
-      "meanings": [
-        {
-          "definition": "English definition for this specific sense of the word",
-          "example": "English example sentence using the word in this sense",
-          "vietnamese": "${lang} translation of the example sentence"
-        }
-      ],
-      "collocations": ["common English collocation or phrase using the word", "another collocation"],
-      "wordFamily": [
-        { "word": "related English word form", "partOfSpeech": "English part of speech" }
-      ]`;
+      "meanings": [{ "definition": "English", "example": "English sentence", "vietnamese": "${lang}" }],
+      "collocations": ["English collocation"],
+      "wordFamily": [{ "word": "English", "partOfSpeech": "English" }]`;
 
 const vocabDepthLanguageRule = (lang: string) =>
   `\n- meanings.definition, meanings.example, collocations, and wordFamily.word/partOfSpeech MUST be in English (the content being taught); meanings.vietnamese MUST be in ${lang}`;
@@ -39,9 +33,9 @@ const vocabDepthLanguageRule = (lang: string) =>
 const vocabDepthRequirements = (lang: string) => `
 
 Vocabulary DEPTH fields (meanings, collocations, wordFamily) — ALWAYS include them for this (Pro) lesson:
-- meanings: include one entry per common meaning of the word. If the word has multiple common meanings, include multiple entries; otherwise include exactly one. Each meaning needs an English definition, an English example sentence, and a ${lang} translation of that example.
+- meanings: exactly 1 entry, or 2 when the word genuinely has a second common meaning worth teaching. Never more than 2. Each needs an English definition, an English example sentence, and a ${lang} translation of that example.
 - collocations: 2-4 common English collocations or set phrases that use the word (English only)
-- wordFamily: related English word forms with their part of speech (e.g. "develop" -> "development" (noun), "developer" (noun), "developing" (adjective)). Use [] only if there are no natural related forms.`;
+- wordFamily: related English word forms with their part of speech (e.g. "develop" -> "development" (noun), "developer" (noun)). Use [] only if there are no natural related forms.`;
 
 // Free tier: give a single item full depth as a "Pro preview"; all others keep
 // only the base fields.
@@ -49,7 +43,7 @@ const VOCAB_PREVIEW_REQUIREMENTS = `
 
 Vocabulary DEPTH fields (meanings, collocations, wordFamily) — for THIS lesson, include them for EXACTLY ONE vocabulary item as a preview of the Pro version:
 - Choose the SINGLE word that benefits MOST from depth: one that has multiple common meanings, real collocations, and related word forms (a word family).
-- For that ONE item only, fully populate: meanings (one entry per common meaning), collocations (2-4 common phrases), and wordFamily (related forms with part of speech).
+- For that ONE item only, fully populate: meanings (1-2 entries, never more), collocations (2-4 common phrases), and wordFamily (related forms with part of speech).
 - For ALL OTHER vocabulary items, OMIT meanings, collocations, and wordFamily entirely (either leave those keys out or set them to empty arrays []).
 - Exactly one item — no more, no fewer — may contain populated depth fields.`;
 
@@ -62,69 +56,87 @@ const SAME_LANGUAGE_NOTE = `
 
 NOTE — the learner's language is English, the same language being taught: for the learner-language fields (definitionVi, vietnamese, meanings.vietnamese, idiom meanings and notes, quiz questions, options and explanations) write clear, simpler English paraphrases and synonyms rather than a translation. Never leave them empty and never repeat definitionEn verbatim.`;
 
-function buildSystemPrompt(includeDepth: boolean, locale: Locale): string {
+/**
+ * Exported so the prompt can be MEASURED without spending a call: it is the
+ * fixed part of every request, and "how big is it" is the first question any
+ * cost work has to answer.
+ */
+export function buildSystemPrompt(
+  includeDepth: boolean,
+  locale: Locale,
+): string {
   const lang = LOCALE_INFO[locale].promptName;
   const depthRequirements = includeDepth
     ? vocabDepthRequirements(lang)
     : VOCAB_PREVIEW_REQUIREMENTS;
   const sameLanguageNote = locale === "en" ? SAME_LANGUAGE_NOTE : "";
 
+  // Every mention of the per-word level disappears together when the local
+  // lexicon takes over (see ASK_MODEL_FOR_CEFR) — a schema field the prompt
+  // still describes but nobody reads is how prompts rot.
+  const cefrField = ASK_MODEL_FOR_CEFR
+    ? `\n      "cefr": "A1|A2|B1|B2|C1|C2",`
+    : "";
+  const cefrCodeRule = ASK_MODEL_FOR_CEFR
+    ? "level and vocabulary.cefr are"
+    : "level is";
+  const cefrRequired = ASK_MODEL_FOR_CEFR ? "cefr, " : "";
+  const cefrWordRule = ASK_MODEL_FOR_CEFR
+    ? `\n- "vocabulary.cefr" is the level at which a learner normally MEETS that word — it is per word and will often differ from the video's overall level`
+    : "";
+
   return `You are an expert English teacher creating lessons for ${lang} speakers.
 
 Given a YouTube video transcript, produce a structured English lesson as valid JSON only — no markdown, no code fences, no extra text.
 
-The JSON must match this schema exactly:
+The JSON must match this schema exactly. Field values below are TYPE HINTS, not
+content — the Language rules that follow say which language each field takes:
 {
-  "title": "short lesson title in ${lang}",
-  "summary": "2-3 sentence overview entirely in ${lang} describing what English skills and topics the learner will study",
+  "title": "short title",
+  "summary": "2-3 sentences on what the learner will study",
+  "level": "A1|A2|B1|B2|C1|C2",
+  "levelNote": "one sentence",
   "vocabulary": [
     {
-      "word": "English word or phrase from the transcript",
-      "partOfSpeech": "English part of speech, e.g. noun, verb, adjective, phrasal verb",
-      "definitionEn": "a clear, concise English definition of the word",
-      "definitionVi": "clear explanation in ${lang} of what the English word/phrase means",
-      "vietnamese": "${lang} translation or equivalent"${vocabDepthSchema(lang)}
+      "word": "English word/phrase from the transcript",
+      "partOfSpeech": "noun|verb|adjective|adverb|phrasal verb|...",${cefrField}
+      "definitionEn": "English definition",
+      "definitionVi": "explanation of the word",
+      "vietnamese": "translation or equivalent"${vocabDepthSchema(lang)}
     }
   ],
   "idiomsAndSlang": [
-    {
-      "phrase": "English idiom, slang, or colloquial expression",
-      "meaning": "explanation in ${lang} of what it means",
-      "vietnamese": "${lang} equivalent or paraphrase",
-      "note": "optional usage note in ${lang}"
-    }
+    { "phrase": "English idiom/slang", "meaning": "what it means", "vietnamese": "equivalent or paraphrase", "note": "optional usage note" }
   ],
   "exampleSentences": [
-    {
-      "sentence": "English example sentence using a key phrase",
-      "keyPhrase": "the highlighted English phrase",
-      "vietnamese": "${lang} translation of the sentence"
-    }
+    { "sentence": "English sentence", "keyPhrase": "the English phrase it highlights, appearing verbatim in sentence", "vietnamese": "translation of sentence" }
   ],
   "quiz": [
-    {
-      "question": "quiz question in ${lang}",
-      "options": ["${lang} option A", "${lang} option B", "${lang} option C", "${lang} option D"],
-      "correctAnswer": 0,
-      "explanation": "explanation in ${lang}"
-    }
+    { "question": "", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "" }
   ]
 }
 
 Language rules:
-- title and summary MUST be entirely in ${lang}
+- title, summary and levelNote MUST be entirely in ${lang}
+- ${cefrCodeRule} bare CEFR codes — write them exactly as A1/A2/B1/B2/C1/C2, never translated and never spelled out
 - vocabulary.word, partOfSpeech, and definitionEn MUST be in English (the content being taught)
 - idiomsAndSlang.phrase and exampleSentences.sentence MUST be in English (the content being taught)
 - definitionVi, vietnamese, idiom meanings, notes, quiz questions, and explanations MUST be in ${lang} (these keys are named after Vietnamese for legacy reasons — always fill them in ${lang})${vocabDepthLanguageRule(lang)}
 
 Requirements:
-- Include 8-12 vocabulary items drawn from the transcript
-- For each vocabulary item, partOfSpeech, definitionEn, definitionVi, and vietnamese are ALWAYS required
+- Include 8-10 vocabulary items drawn from the transcript — pick the ones a learner gains most from, not simply the first ones that appear
+- For each vocabulary item, partOfSpeech, ${cefrRequired}definitionEn, definitionVi, and vietnamese are ALWAYS required
 - Include 3-6 idioms or slang expressions (use [] if none appear)
 - Include exactly 3 example sentences using key phrases from the lesson
 - Include exactly 5 quiz questions with 4 options each
 - correctAnswer must be the 0-based index of the correct option
 - Use simple, learner-friendly ${lang} for all ${lang} text${sameLanguageNote}${depthRequirements}
+
+CEFR level rules:
+- "level" rates the DIFFICULTY OF THE ENGLISH, not how interesting or how technical the topic is: speaking speed, sentence length, how common the vocabulary is, and how much idiom and slang appear
+- Judge the video as a whole and pick the single level a learner needs in order to follow it comfortably${cefrWordRule}
+- Write every level as a bare code: "B1". Never "B1+", never "B1-B2", never "Intermediate (B1)", never a range and never a plus or minus
+- "levelNote" is ONE sentence in ${lang} naming the concrete reason for the level (e.g. the speaker talks fast, the vocabulary is everyday, there are many idioms). Do not merely repeat the level
 
 CRITICAL — Quiz rules:
 - NEVER ask about the video's story, plot, events, people, places, times, or factual details (e.g. "what time did they wake up?", "where did they go?", "what happened next?")
@@ -171,7 +183,40 @@ function parseLesson(raw: string, t: Dictionary): Lesson {
     throw new UserFacingError(t.api.badQuiz);
   }
 
-  return parsed;
+  return normalizeLevels(parsed);
+}
+
+/**
+ * Force every CEFR value through `normalizeCefr` before the lesson leaves this
+ * module, so nothing downstream ever sees "b1+" or "Intermediate".
+ *
+ * A missing or unrecognisable level is dropped, NOT an error: the level is a
+ * nice-to-have label on a lesson we have already paid for, so failing the whole
+ * generation over it would be an expensive way to lose a chip.
+ */
+function normalizeLevels(lesson: Lesson): Lesson {
+  const levelNote =
+    typeof lesson.levelNote === "string" && lesson.levelNote.trim()
+      ? lesson.levelNote.trim()
+      : undefined;
+
+  return {
+    ...lesson,
+    // The overall level stays the model's call: it comes from speaking speed,
+    // sentence length and idiom density, none of which a word list can see.
+    level: normalizeCefr(lesson.level),
+    levelNote,
+    vocabulary: lesson.vocabulary.map((item) => ({
+      ...item,
+      // Per-word level: the local table WINS wherever it has an answer, so a
+      // common word gets the same level on every run. The model's answer is
+      // the fallback for everything the table doesn't know (which is most of
+      // the C1/C2 vocabulary a real transcript throws up).
+      cefr:
+        lookupCefr(item.word) ??
+        (ASK_MODEL_FOR_CEFR ? normalizeCefr(item.cefr) : undefined),
+    })),
+  };
 }
 
 interface GenerateLessonOptions {
@@ -244,9 +289,26 @@ export async function generateLesson(
   const locale = options.locale ?? DEFAULT_LOCALE;
   const t = getDictionary(locale);
 
-  const { message } = await requestLesson(transcript, includeDepth, locale);
+  const { message, config } = await requestLesson(
+    transcript,
+    includeDepth,
+    locale,
+  );
 
-  console.log("[USAGE]", JSON.stringify(message.usage));
+  // Everything needed to answer "where do the tokens actually go" from the
+  // logs alone: which model, which tier, and how much of the input was the
+  // transcript. Output tokens dominate the bill (they cost 5x input), so the
+  // in/out split is the number worth watching, not the total.
+  console.log(
+    "[USAGE]",
+    JSON.stringify({
+      model: config.model,
+      tier: includeDepth ? "pro" : "free",
+      locale,
+      transcriptChars: transcript.length,
+      ...message.usage,
+    }),
+  );
 
   // Check why generation stopped BEFORE parsing. A response cut off at
   // max_tokens is truncated mid-JSON, which would otherwise surface as an

@@ -7,6 +7,9 @@ const en: Dictionary = {
     upgradeTitle: "Upgrade to Pro — Fluent",
     upgradeDescription:
       "Upgrade to Fluent Pro to unlock extended meanings, collocations and word families for every word.",
+    notebookTitle: "Notebook — Fluent",
+    notebookDescription:
+      "Keep the words that matter from your lessons and review them any time.",
   },
 
   common: {
@@ -78,6 +81,95 @@ const en: Dictionary = {
     deleteTitle: "Delete lesson",
   },
 
+  backup: {
+    title: "Lesson backup",
+    proTag: "✨ Pro",
+    description:
+      "Export every saved lesson to a JSON file, or import one on another device. Lessons live in this browser only, so clearing its data loses them.",
+    exportCta: "Export JSON",
+    importCta: "Import JSON",
+    statusEmpty: "There are no saved lessons to export yet.",
+    statusExported: "Exported {count} lessons.",
+    statusImported: "Imported {count} lessons.",
+    statusSkipped: "Skipped {count} already here in a newer copy.",
+    statusDropped: "{count} entries in the file were unreadable and skipped.",
+    statusFailed: "{count} could not be saved — this browser's storage is full.",
+    errorInvalidJson: "That file could not be read — it isn't valid JSON.",
+    errorNotBackup: "That isn't a LearnFluent backup file.",
+    errorWrongSchema:
+      "This file was exported from an older lesson format and can no longer be restored.",
+    errorNoLessons: "No usable lessons were found in that file.",
+    errorReadFailed: "That file could not be opened. Try choosing it again.",
+    upsellTitle: "Backup is a Pro feature",
+    upsellBody:
+      "You're on the free plan, so exporting and importing lessons isn't available yet. Upgrade to Pro to carry your lessons to another device and keep them when you switch browsers.",
+    upsellCta: "Upgrade to Pro ☕",
+  },
+
+  notebook: {
+    navLabel: "Notebook",
+    defaultName: "My notebook",
+    pageTitle: "Your notebook",
+    pageIntro:
+      "The words you bookmark in a lesson are kept here. All of it lives in this browser.",
+    backToLessons: "Back to lessons",
+    statusFree: "{words}/{limit} words · free plan",
+    statusPro: "{words} words · {notebooks} notebooks",
+    emptyTitle: "No words yet",
+    emptyBody:
+      "Open a lesson, flip a vocabulary card, and tap the bookmark to keep a word here.",
+    newNotebookCta: "New notebook",
+    newNamePlaceholder: "Topic name",
+    createCta: "Create",
+    cancel: "Cancel",
+    renameCta: "Rename",
+    saveNameCta: "Save",
+    deleteCta: "Delete notebook",
+    deleteTitle: "Delete this notebook?",
+    deleteBody: "Every word in “{name}” goes with it, and it cannot be undone.",
+    deleteConfirmCta: "Delete",
+    removeAria: "Remove from notebook: {word}",
+    removeTitle: "Remove from notebook",
+    sourceVideo: "Watch the original video",
+    wordCount: "{count} words",
+    pickTitle: "Save “{word}” to which notebook?",
+    saveTitle: "Save to notebook",
+    saveAria: "Save {word} to your notebook",
+    savedTitle: "Saved — tap to remove",
+    savedAria: "Remove {word} from your notebook",
+    limitTitle: "Your free notebook is full",
+    limitBody:
+      "The free plan keeps {limit} words in a single notebook. Upgrade to Pro for unlimited words split across as many topics as you like.",
+    limitCta: "Upgrade to Pro ☕",
+    notebookLimitTitle: "Topic notebooks are a Pro feature",
+    notebookLimitBody:
+      "The free plan has one notebook. Upgrade to Pro to split your words by topic — work, travel, exams — and choose where each one goes as you save it.",
+  },
+
+  notebookBackup: {
+    title: "Notebook backup",
+    proTag: "✨ Pro",
+    description:
+      "Export every notebook to a JSON file, or import one on another device. Notebooks live in this browser only, so clearing its data loses them.",
+    exportCta: "Export JSON",
+    importCta: "Import JSON",
+    statusEmpty: "There are no notebooks to export yet.",
+    statusExported: "Exported {words} words across {notebooks} notebooks.",
+    statusImported: "Imported {words} words and {notebooks} new notebooks.",
+    statusSkipped: "Skipped {count} words already here.",
+    statusDropped: "{count} entries in the file were unreadable and skipped.",
+    errorInvalidJson: "That file could not be read — it isn't valid JSON.",
+    errorNotBackup: "That isn't a LearnFluent notebook backup.",
+    errorWrongSchema:
+      "This file was exported from an older notebook format and can no longer be restored.",
+    errorEmpty: "No usable notebooks were found in that file.",
+    errorReadFailed: "That file could not be opened. Try choosing it again.",
+    upsellTitle: "Notebook backup is a Pro feature",
+    upsellBody:
+      "You're on the free plan, so exporting and importing notebooks isn't available yet. Upgrade to Pro to carry your words to another device and keep them when you switch browsers.",
+    upsellCta: "Upgrade to Pro ☕",
+  },
+
   lesson: {
     ready: "Your lesson is ready!",
     thumbnailAlt: "Video thumbnail: {title}",
@@ -99,6 +191,22 @@ const en: Dictionary = {
       "Pro unlocks extended meanings, collocations and word families for {everyWord}. {cta}",
     upsellEveryWord: "every word",
     upsellCta: "Upgrade to Pro ☕",
+  },
+
+  cefr: {
+    lessonLabel: "Level",
+    unknown: "—",
+    unknownTitle: "This lesson was saved before levels existed",
+    lessonAria: "CEFR level of this lesson: {level}",
+    wordAria: "CEFR level of this word: {level}",
+    names: {
+      A1: "Beginner",
+      A2: "Elementary",
+      B1: "Intermediate",
+      B2: "Upper intermediate",
+      C1: "Advanced",
+      C2: "Proficient",
+    },
   },
 
   idioms: {

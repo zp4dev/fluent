@@ -1,5 +1,6 @@
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import LogoutButton from "@/components/LogoutButton";
+import NotebookLink from "@/components/notebook/NotebookLink";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { Theme } from "@/lib/theme/config";
 
@@ -18,6 +19,7 @@ export default function HeaderControls({
 }) {
   return (
     <div className="fixed right-4 top-4 z-50 flex items-center gap-2">
+      <NotebookLink />
       <LanguageSwitcher />
       {email ? <LogoutButton email={email} /> : null}
       <ThemeToggle initialTheme={initialTheme} />

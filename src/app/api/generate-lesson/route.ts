@@ -4,6 +4,11 @@ import { generateLesson } from "@/lib/anthropic";
 import { readSession } from "@/lib/authSession";
 import { UserFacingError } from "@/lib/errors";
 import { getServerDictionary, getServerLocale } from "@/lib/i18n/server";
+import {
+  cacheLesson,
+  getCachedLesson,
+  type LessonTier,
+} from "@/lib/lessonCache";
 import { isMaintenanceMode } from "@/lib/maintenance";
 import { isProUser } from "@/lib/pro";
 import {
@@ -14,9 +19,9 @@ import {
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 import { countLessonGenerated } from "@/lib/userAdmin";
 import {
+  compressTranscript,
   extractVideoId,
-  getTranscriptText,
-  truncateTranscript,
+  getTranscriptTextCached,
 } from "@/lib/youtube";
 
 /**
@@ -94,6 +99,34 @@ export async function POST(request: Request) {
       licenseKey: body.licenseKey,
     });
 
+    // Cache lookup comes BEFORE the daily cap on purpose: a hit costs nothing
+    // to serve, so it must not consume the quota a paying request would.
+    // It also comes before the transcript fetch, which is a paid provider call
+    // of its own.
+    const tier: LessonTier = includeDepth ? "pro" : "free";
+    const cacheKey = { videoId, locale, tier };
+    const cachedLesson = await getCachedLesson(cacheKey);
+
+    if (cachedLesson) {
+      console.log(
+        `[generate-lesson] Cache HIT (${tier}, ${locale}) for ${videoId} — 0 tokens, no transcript fetch`,
+      );
+
+      // Still counted: this is the admin's "lessons served" statistic, not the
+      // rate limit.
+      await countLessonGenerated(session?.email);
+
+      return NextResponse.json({
+        lesson: cachedLesson,
+        videoId,
+        cached: true,
+      });
+    }
+
+    console.log(
+      `[generate-lesson] Cache MISS (${tier}, ${locale}) for ${videoId}`,
+    );
+
     // Quiet fair-use cap for every Pro path (paid + grandfathered). Free users
     // keep the client-side 3/day counter; this only runs for Pro.
     if (includeDepth) {
@@ -119,8 +152,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const rawTranscript = await getTranscriptText(videoId, t);
-    const transcript = truncateTranscript(rawTranscript);
+    const rawTranscript = await getTranscriptTextCached(videoId, t);
+    const transcript = compressTranscript(rawTranscript);
 
     console.log(
       `[generate-lesson] Generating lesson with Claude (tier: ${
@@ -129,6 +162,10 @@ export async function POST(request: Request) {
     );
     const lesson = await generateLesson(transcript, { includeDepth, locale });
     console.log("[generate-lesson] Lesson generated successfully");
+
+    // Written only after a successful parse, so a malformed generation is never
+    // the thing that gets served for the next 30 days.
+    await cacheLesson(cacheKey, lesson);
 
     // Only signed-in users have an address to attribute this to; anonymous
     // free-tier generations are not counted. Never throws, so it cannot cost

@@ -6,12 +6,18 @@ export const SAMPLE_LESSON: GenerateLessonResponse = {
   videoId: "dQw4w9WgXcQ",
   lesson: {
     title: "Bài học mẫu: Giao tiếp hằng ngày",
+    // Spread across the scale on purpose: dev mode is where the chip colours
+    // get looked at, and one level would only ever show one of them.
+    level: "B1",
+    levelNote:
+      "Video dùng từ vựng đời thường và câu ngắn, nhưng có vài thành ngữ nên hợp với người ở trình độ B1 trở lên.",
     summary:
       "Bài học này giúp bạn học các từ vựng và cụm từ thông dụng trong giao tiếp tiếng Anh hằng ngày. Bạn sẽ làm quen với cách diễn đạt tự nhiên, một vài thành ngữ phổ biến, và luyện tập qua các câu ví dụ cùng bài kiểm tra ngắn. Đây là nội dung mẫu dùng để kiểm tra giao diện mà không cần gọi API.",
     vocabulary: [
       {
         word: "reliable",
         partOfSpeech: "adjective",
+        cefr: "B2",
         definitionEn: "Able to be trusted to do something well.",
         definitionVi: "Có thể tin tưởng để làm tốt một việc gì đó.",
         vietnamese: "đáng tin cậy",
@@ -37,6 +43,7 @@ export const SAMPLE_LESSON: GenerateLessonResponse = {
       {
         word: "overwhelmed",
         partOfSpeech: "adjective",
+        cefr: "C1",
         definitionEn: "Feeling that you have too much to deal with.",
         definitionVi: "Cảm giác có quá nhiều thứ phải xử lý.",
         vietnamese: "choáng ngợp, quá tải",
@@ -56,6 +63,7 @@ export const SAMPLE_LESSON: GenerateLessonResponse = {
       {
         word: "approach",
         partOfSpeech: "noun",
+        cefr: "B1",
         definitionEn: "A way of dealing with a situation or problem.",
         definitionVi: "Một cách để xử lý một tình huống hoặc vấn đề.",
         vietnamese: "cách tiếp cận, phương pháp",
@@ -77,6 +85,7 @@ export const SAMPLE_LESSON: GenerateLessonResponse = {
       {
         word: "genuine",
         partOfSpeech: "adjective",
+        cefr: "C2",
         definitionEn: "Real and exactly what it appears to be; sincere.",
         definitionVi: "Thật và đúng như vẻ ngoài; chân thành.",
         vietnamese: "chân thật, thật lòng",
@@ -93,6 +102,7 @@ export const SAMPLE_LESSON: GenerateLessonResponse = {
       {
         word: "efficient",
         partOfSpeech: "adjective",
+        cefr: "B2",
         definitionEn: "Working in a well-organized way without wasting time.",
         definitionVi: "Làm việc một cách có tổ chức, không lãng phí thời gian.",
         vietnamese: "hiệu quả",
@@ -112,6 +122,7 @@ export const SAMPLE_LESSON: GenerateLessonResponse = {
       {
         word: "curious",
         partOfSpeech: "adjective",
+        cefr: "A2",
         definitionEn: "Eager to know or learn something.",
         definitionVi: "Háo hức muốn biết hoặc học hỏi điều gì đó.",
         vietnamese: "tò mò, ham học hỏi",
@@ -131,6 +142,7 @@ export const SAMPLE_LESSON: GenerateLessonResponse = {
       {
         word: "encourage",
         partOfSpeech: "verb",
+        cefr: "A1",
         definitionEn: "To give someone support or confidence to do something.",
         definitionVi: "Trao cho ai đó sự ủng hộ hoặc tự tin để làm điều gì đó.",
         vietnamese: "khuyến khích, động viên",

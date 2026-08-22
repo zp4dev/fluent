@@ -23,6 +23,27 @@ interface ProviderDefaults {
   headers?: Record<string, string>;
 }
 
+/*
+ * ON PROMPT CACHING — checked, and deliberately NOT used.
+ *
+ * `cache_control` only caches a prefix that clears a per-model minimum, and it
+ * fails SILENTLY below it (cache_creation_input_tokens: 0, no error). The
+ * system prompt here is ~1,600 tokens:
+ *
+ *   Opus 5 / Fable 5 ............  512 tokens  → would cache
+ *   Opus 4.8, Sonnet 5, Sonnet 4.6, Sonnet 4.5 ... 1,024 → would cache
+ *   Opus 4.7 ................... 2,048 tokens  → would NOT cache
+ *   Opus 4.6, Opus 4.5, Haiku 4.5 ... 4,096    → would NOT cache
+ *
+ * Production runs Haiku 4.5, so caching the system prompt buys nothing. Putting
+ * the transcript inside the cached prefix would clear 4,096, but the transcript
+ * changes per video — and a repeat of the same video is already served whole
+ * from the lesson cache (lib/lessonCache.ts) for zero tokens.
+ *
+ * Revisit only if the model changes: on Sonnet 4.6 or Opus 5 the system prompt
+ * alone becomes cacheable at ~0.1x read / 1.25x write, breaking even at two
+ * requests within the 5-minute TTL.
+ */
 const DEFAULTS: Record<Provider, ProviderDefaults> = {
   ANTHROPIC: {
     baseUrl: "https://api.anthropic.com",

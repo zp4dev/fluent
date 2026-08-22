@@ -1,3 +1,5 @@
+import type { CefrLevel } from "@/lib/cefr";
+
 /**
  * One sense of a word: an English definition plus an English example and its
  * Vietnamese translation.
@@ -20,6 +22,15 @@ export interface WordFamilyEntry {
 export interface VocabularyItem {
   word: string; // English
   partOfSpeech: string; // English, e.g. "noun", "phrasal verb"
+  /**
+   * CEFR level of this word — available to ALL users.
+   *
+   * OPTIONAL on purpose. Lessons saved in browsers before this field existed
+   * are still on the current SAVED_LESSON_SCHEMA_VERSION, and bumping that
+   * version would delete every one of them (see lib/savedLessons.ts). An
+   * optional field lets those lessons keep working, just without a level.
+   */
+  cefr?: CefrLevel;
   definitionEn: string; // English definition — available to ALL users
   definitionVi: string; // Vietnamese explanation (previously `definition`)
   vietnamese: string; // Vietnamese translation / equivalent
@@ -57,6 +68,14 @@ export interface QuizQuestion {
 export interface Lesson {
   title: string;
   summary: string;
+  /**
+   * Overall CEFR level of the English in the source video. Optional for the
+   * same reason as VocabularyItem.cefr — pre-existing saved lessons don't have
+   * it and must not be discarded over it.
+   */
+  level?: CefrLevel;
+  /** One sentence in the learner's language saying why it is that level. */
+  levelNote?: string;
   vocabulary: VocabularyItem[];
   idiomsAndSlang: IdiomItem[];
   exampleSentences: ExampleSentence[];
@@ -66,4 +85,14 @@ export interface Lesson {
 export interface GenerateLessonResponse {
   lesson: Lesson;
   videoId: string;
+  /**
+   * True when the server answered from its lesson cache — no tokens spent, no
+   * transcript fetched. The client uses this to leave the free daily counter
+   * alone, so re-opening a lesson someone else already generated is free in
+   * both senses.
+   *
+   * Transient: set on the API response only, never persisted with a saved
+   * lesson (see SavedLessons — a stored lesson's origin is not interesting).
+   */
+  cached?: boolean;
 }
