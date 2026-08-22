@@ -404,6 +404,7 @@ export default function LessonGenerator() {
             lesson={displayedResult.lesson}
             videoId={displayedResult.videoId}
             isPro={isPro}
+            licenseKey={licenseKey}
           />
         </div>
       ) : null}

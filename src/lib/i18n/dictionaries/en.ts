@@ -240,9 +240,14 @@ const en: Dictionary = {
 
   pdf: {
     download: "Download PDF",
-    comingSoonTitle: "Coming soon!",
-    comingSoonBody:
-      "PDF download is still being polished. Thanks for waiting — it'll be here soon!",
+    downloading: "Building your PDF...",
+    downloadFailed: "Could not download the PDF. Please try again.",
+    notPro: "This feature is Fluent Pro only.",
+    limitReached:
+      "You've downloaded a PDF 3 times in the last hour. Please try again in a few minutes! ⏳",
+    limitReachedTitle: "Out of PDF downloads",
+    limitReachedBody:
+      "You've downloaded a PDF 3 times in the last hour. It'll open back up in a few minutes — see you then! ⏳",
     upsellTitle: "PDF download is a Pro feature",
     upsellBody:
       "Upgrade to Pro to download lessons as a clean PDF — for printing, reviewing and writing practice on paper.",

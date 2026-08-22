@@ -232,8 +232,12 @@ const zh: Dictionary = {
 
   pdf: {
     download: "下载 PDF",
-    comingSoonTitle: "即将推出！",
-    comingSoonBody: "PDF 下载功能还在打磨中。谢谢你的等待 — 很快就会上线！",
+    downloading: "正在生成 PDF...",
+    downloadFailed: "PDF 下载失败，请重试。",
+    notPro: "此功能仅限 Fluent Pro 使用。",
+    limitReached: "你在过去一小时内已下载 3 次 PDF，请几分钟后再试！⏳",
+    limitReachedTitle: "PDF 下载次数已用完",
+    limitReachedBody: "你在过去一小时内已下载 3 次 PDF，几分钟后即可恢复，到时再见！⏳",
     upsellTitle: "PDF 下载是 Pro 功能",
     upsellBody:
       "升级 Pro 即可把课程下载成精美的 PDF — 方便打印、复习，以及在纸上练习写作。",

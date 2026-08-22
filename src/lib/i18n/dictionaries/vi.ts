@@ -247,9 +247,14 @@ const vi = {
 
   pdf: {
     download: "Tải PDF",
-    comingSoonTitle: "Sắp có rồi!",
-    comingSoonBody:
-      "Tính năng tải PDF đang được hoàn thiện. Cảm ơn bạn đã chờ — mình sẽ sớm mang đến nhé!",
+    downloading: "Đang tạo PDF...",
+    downloadFailed: "Không tải được PDF. Bạn thử lại nhé.",
+    notPro: "Tính năng này chỉ dành cho Fluent Pro.",
+    limitReached:
+      "Bạn đã tải PDF 3 lần trong một giờ qua. Vui lòng thử lại sau ít phút nhé! ⏳",
+    limitReachedTitle: "Đã hết lượt tải PDF",
+    limitReachedBody:
+      "Bạn đã tải PDF 3 lần trong một giờ qua. Lượt tải sẽ có lại sau ít phút, hẹn gặp lại nhé! ⏳",
     upsellTitle: "Tải PDF là tính năng Pro",
     upsellBody:
       "Nâng cấp Pro để tải bài học dưới dạng PDF đẹp mắt — dùng để in, ôn tập và luyện viết ngay trên giấy.",
