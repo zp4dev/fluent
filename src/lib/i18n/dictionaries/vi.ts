@@ -63,6 +63,7 @@ const vi = {
     hintPaused:
       "Tính năng tạo bài học đang tạm dừng để nâng cấp. Quay lại sau ít phút nhé!",
     proBadge: "☕ Pro",
+    trialBadge: "🎁 Dùng thử: còn {days} ngày",
     remaining: "Còn lại: {remaining}/{limit} lượt hôm nay",
     restoreIntro:
       "Nhập email bạn đã dùng khi thanh toán. Mình gửi mã xác thực để chắc chắn đúng là bạn.",
@@ -330,6 +331,7 @@ const vi = {
     annualBadge: "Tiết kiệm ~33%",
     monthlyName: "Pro 1 tháng",
     monthlyPeriod: "/tháng",
+    trialName: "Dùng thử",
   },
 
   admin: {
@@ -378,6 +380,14 @@ const vi = {
     createConfirm: "Cấp {plan} cho {email}? Không cần xác nhận qua email.",
     created: "Đã cấp Pro cho {email} đến {expiresAt}.",
     createFailed: "Cấp Pro thất bại.",
+    createTrialTitle: "Tạo người dùng dùng thử",
+    createTrialHint:
+      "Cấp gói dùng thử có giới hạn ngày, không gửi mã xác thực. Kiểm tra kỹ email — gõ sai là cấp nhầm cho người khác.",
+    createTrialDurationLabel: "Số ngày dùng thử",
+    createTrialSubmit: "Cấp dùng thử",
+    createTrialConfirm:
+      "Cấp dùng thử {days} ngày cho {email}? Không cần xác nhận qua email.",
+    createdTrial: "Đã cấp dùng thử {days} ngày cho {email}, hết hạn {expiresAt}.",
     trackedSince:
       "Số bài học và IP đăng nhập chỉ được ghi lại từ khi tính năng này ra mắt — người dùng cũ sẽ hiển thị 0 cho tới lần dùng tiếp theo.",
   },

@@ -54,6 +54,7 @@ const zh: Dictionary = {
     hint: "带英文字幕的视频效果最好。",
     hintPaused: "课程生成正在升级中暂停，请过几分钟再回来！",
     proBadge: "☕ Pro",
+    trialBadge: "🎁 试用：剩 {days} 天",
     remaining: "今天还剩 {remaining}/{limit} 次",
     restoreIntro:
       "请输入你付款时使用的邮箱。我们会发送验证码来确认是你本人。",
@@ -307,6 +308,7 @@ const zh: Dictionary = {
     annualBadge: "省约 33%",
     monthlyName: "Pro 月付",
     monthlyPeriod: "/月",
+    trialName: "试用",
   },
 
   admin: {
@@ -354,6 +356,12 @@ const zh: Dictionary = {
     createConfirm: "为 {email} 开通{plan}？不会发送确认邮件。",
     created: "已为 {email} 开通 Pro，有效期至 {expiresAt}。",
     createFailed: "开通 Pro 失败。",
+    createTrialTitle: "创建试用用户",
+    createTrialHint: "开通限时试用，不发送验证码。请仔细核对邮箱 — 输错会把试用开给别人。",
+    createTrialDurationLabel: "试用天数",
+    createTrialSubmit: "开通试用",
+    createTrialConfirm: "为 {email} 开通 {days} 天试用？不会发送确认邮件。",
+    createdTrial: "已为 {email} 开通 {days} 天试用，有效期至 {expiresAt}。",
     trackedSince:
       "课程数和登录 IP 只会从本功能上线后开始记录 — 老用户在下次使用前都会显示为 0。",
   },

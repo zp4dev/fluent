@@ -56,6 +56,7 @@ const en: Dictionary = {
     hintPaused:
       "Lesson generation is paused for an upgrade. Please check back in a few minutes!",
     proBadge: "☕ Pro",
+    trialBadge: "🎁 Trial: {days} days left",
     remaining: "{remaining}/{limit} lessons left today",
     restoreIntro:
       "Enter the email you paid with. We'll send a verification code to make sure it's you.",
@@ -324,6 +325,7 @@ const en: Dictionary = {
     annualBadge: "Save ~33%",
     monthlyName: "Pro — 1 month",
     monthlyPeriod: "/month",
+    trialName: "Trial",
   },
 
   admin: {
@@ -373,6 +375,14 @@ const en: Dictionary = {
     createConfirm: "Grant {plan} to {email}? No email confirmation is sent.",
     created: "Granted Pro to {email} until {expiresAt}.",
     createFailed: "Could not grant Pro.",
+    createTrialTitle: "Create a trial user",
+    createTrialHint:
+      "Grants a time-limited trial, with no verification code sent. Check the address carefully — a typo grants it to whoever owns it.",
+    createTrialDurationLabel: "Trial length",
+    createTrialSubmit: "Grant trial",
+    createTrialConfirm:
+      "Grant a {days}-day trial to {email}? No email confirmation is sent.",
+    createdTrial: "Granted a {days}-day trial to {email}, until {expiresAt}.",
     trackedSince:
       "Lesson counts and login IPs are only recorded from the moment this feature shipped — existing users read 0 until they next use the app.",
   },

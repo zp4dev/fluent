@@ -56,6 +56,7 @@ const es: Dictionary = {
     hintPaused:
       "La creación de lecciones está en pausa por una actualización. ¡Vuelve en unos minutos!",
     proBadge: "☕ Pro",
+    trialBadge: "🎁 Prueba: quedan {days} días",
     remaining: "Te quedan {remaining}/{limit} lecciones hoy",
     restoreIntro:
       "Introduce el correo con el que pagaste. Te enviaremos un código de verificación para confirmar que eres tú.",
@@ -334,6 +335,7 @@ const es: Dictionary = {
     annualBadge: "Ahorra ~33%",
     monthlyName: "Pro — 1 mes",
     monthlyPeriod: "/mes",
+    trialName: "Prueba",
   },
 
   admin: {
@@ -384,6 +386,15 @@ const es: Dictionary = {
       "¿Conceder {plan} a {email}? No se envía ninguna confirmación por correo.",
     created: "Pro concedido a {email} hasta {expiresAt}.",
     createFailed: "No se ha podido conceder Pro.",
+    createTrialTitle: "Crear un usuario de prueba",
+    createTrialHint:
+      "Concede una prueba con duración limitada, sin enviar código de verificación. Revisa bien la dirección: un error se lo concede a quien la tenga.",
+    createTrialDurationLabel: "Duración de la prueba",
+    createTrialSubmit: "Conceder prueba",
+    createTrialConfirm:
+      "¿Conceder una prueba de {days} días a {email}? No se envía ninguna confirmación por correo.",
+    createdTrial:
+      "Prueba de {days} días concedida a {email}, hasta {expiresAt}.",
     trackedSince:
       "Las lecciones y las IP de acceso solo se registran desde que se lanzó esta función; los usuarios existentes muestran 0 hasta que vuelvan a usar la app.",
   },

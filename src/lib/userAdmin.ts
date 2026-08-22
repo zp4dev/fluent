@@ -1,9 +1,9 @@
 import {
   isEntitlementActive,
   listEntitlements,
+  type EntitlementPlan,
   type ProEntitlement,
 } from "@/lib/entitlements";
-import type { PlanId } from "@/lib/plans";
 import { getRedis } from "@/lib/redis";
 import { normalizeEmail } from "@/lib/validateEmail";
 
@@ -29,7 +29,7 @@ export interface LastLogin {
 
 export interface AdminUser {
   email: string;
-  plan: PlanId;
+  plan: EntitlementPlan;
   activatedAt: string;
   expiresAt: string;
   isActive: boolean;

@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import type { EntitlementPlan } from "@/lib/entitlements";
 import { LOCALE_INFO } from "@/lib/i18n/config";
 import { useI18n } from "@/lib/i18n/context";
 import { fmt } from "@/lib/i18n/format";
-import { PLAN_ORDER, type PlanId } from "@/lib/plans";
+import { PLAN_ORDER, TRIAL_DURATIONS, type PlanId, type TrialDurationDays } from "@/lib/plans";
 import type { AdminUser } from "@/lib/userAdmin";
 
 interface Props {
@@ -25,13 +26,21 @@ export default function UserManager({ users, onNotice, onError }: Props) {
   const [creating, setCreating] = useState(false);
   const [revokingEmail, setRevokingEmail] = useState<string | null>(null);
 
+  const [trialEmail, setTrialEmail] = useState("");
+  const [trialDays, setTrialDays] = useState<TrialDurationDays>(7);
+  const [creatingTrial, setCreatingTrial] = useState(false);
+
   const dateFormat = new Intl.DateTimeFormat(LOCALE_INFO[locale].htmlLang, {
     dateStyle: "medium",
     timeStyle: "short",
   });
 
-  const planLabel = (plan: PlanId) =>
-    plan === "annual" ? t.plans.annualName : t.plans.monthlyName;
+  const planLabel = (plan: EntitlementPlan) =>
+    plan === "annual"
+      ? t.plans.annualName
+      : plan === "monthly"
+        ? t.plans.monthlyName
+        : t.plans.trialName;
 
   async function post(body: Record<string, string>) {
     // The admin session cookie authorises this — no secret in the body.
@@ -94,6 +103,55 @@ export default function UserManager({ users, onNotice, onError }: Props) {
       onError(t.admin.createFailed);
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function createTrialUser(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const email = trialEmail.trim();
+    if (!email) {
+      return;
+    }
+
+    // Same reasoning as createUser: no verification code is sent, so this
+    // confirmation is the only guard against a typo granting a stranger Pro.
+    if (
+      !window.confirm(fmt(t.admin.createTrialConfirm, { email, days: trialDays }))
+    ) {
+      return;
+    }
+
+    setCreatingTrial(true);
+    onNotice(null);
+    onError(null);
+
+    try {
+      const { response, data } = await post({
+        action: "grant",
+        email,
+        plan: "trial",
+        durationDays: String(trialDays),
+      });
+
+      if (!response.ok || !data.ok) {
+        onError(data.error ?? t.admin.createFailed);
+        return;
+      }
+
+      onNotice(
+        fmt(t.admin.createdTrial, {
+          email,
+          days: trialDays,
+          expiresAt: data.expiresAt ?? "?",
+        }),
+      );
+      setTrialEmail("");
+      router.refresh();
+    } catch {
+      onError(t.admin.createFailed);
+    } finally {
+      setCreatingTrial(false);
     }
   }
 
@@ -186,6 +244,61 @@ export default function UserManager({ users, onNotice, onError }: Props) {
             className="cursor-pointer whitespace-nowrap rounded-2xl bg-primary px-6 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white transition ease-smooth hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {creating ? t.admin.creating : t.admin.createSubmit}
+          </button>
+        </form>
+      </section>
+
+      <section className="rounded-3xl border-2 border-border bg-card p-6 shadow-sm sm:p-8">
+        <h2 className="text-lg font-extrabold text-heading">
+          {t.admin.createTrialTitle}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          {t.admin.createTrialHint}
+        </p>
+
+        <form
+          onSubmit={createTrialUser}
+          className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"
+        >
+          <label className="flex-1">
+            <span className="block text-xs font-extrabold uppercase tracking-wide text-muted">
+              {t.admin.createEmailLabel}
+            </span>
+            <input
+              type="email"
+              required
+              value={trialEmail}
+              onChange={(event) => setTrialEmail(event.target.value)}
+              placeholder={t.auth.emailPlaceholder}
+              className="mt-2 w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-base font-semibold text-heading outline-none transition ease-smooth placeholder:text-muted focus:border-primary"
+            />
+          </label>
+
+          <label className="sm:w-48">
+            <span className="block text-xs font-extrabold uppercase tracking-wide text-muted">
+              {t.admin.createTrialDurationLabel}
+            </span>
+            <select
+              value={trialDays}
+              onChange={(event) =>
+                setTrialDays(Number(event.target.value) as TrialDurationDays)
+              }
+              className="mt-2 w-full cursor-pointer rounded-2xl border-2 border-border bg-background px-4 py-3 text-base font-semibold text-heading outline-none transition ease-smooth focus:border-primary"
+            >
+              {TRIAL_DURATIONS.map((days) => (
+                <option key={days} value={days}>
+                  {fmt(t.admin.daysLeft, { days })}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <button
+            type="submit"
+            disabled={creatingTrial || !trialEmail.trim()}
+            className="cursor-pointer whitespace-nowrap rounded-2xl bg-primary px-6 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white transition ease-smooth hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {creatingTrial ? t.admin.creating : t.admin.createTrialSubmit}
           </button>
         </form>
       </section>
