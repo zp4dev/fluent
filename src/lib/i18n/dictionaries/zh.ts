@@ -7,6 +7,8 @@ const zh: Dictionary = {
     upgradeTitle: "升级 Pro — Fluent",
     upgradeDescription:
       "升级 Fluent Pro，解锁每个单词的扩展释义、常用搭配和词族。",
+    notebookTitle: "单词本 — Fluent",
+    notebookDescription: "把课程里重要的单词收藏起来，随时复习。",
   },
 
   common: {
@@ -76,6 +78,91 @@ const zh: Dictionary = {
     deleteTitle: "删除课程",
   },
 
+  backup: {
+    title: "课程备份",
+    proTag: "✨ Pro",
+    description:
+      "把已保存的课程导出为一个 JSON 文件，或在另一台设备上导入。课程只存在这个浏览器里，清除浏览器数据就会丢失。",
+    exportCta: "导出 JSON",
+    importCta: "导入 JSON",
+    statusEmpty: "还没有可导出的课程。",
+    statusExported: "已导出 {count} 节课程。",
+    statusImported: "已导入 {count} 节课程。",
+    statusSkipped: "跳过 {count} 节，本地已有更新的版本。",
+    statusDropped: "文件中有 {count} 条数据已损坏，已跳过。",
+    statusFailed: "有 {count} 节没能保存，浏览器存储空间已满。",
+    errorInvalidJson: "无法读取该文件——它不是有效的 JSON。",
+    errorNotBackup: "这不是 LearnFluent 的备份文件。",
+    errorWrongSchema: "该文件由更早的课程版本导出，已经无法恢复。",
+    errorNoLessons: "文件中没有可用的课程。",
+    errorReadFailed: "无法打开该文件，请重新选择。",
+    upsellTitle: "备份是 Pro 版功能",
+    upsellBody:
+      "你正在使用免费版，暂时无法导出或导入课程。升级 Pro 即可把课程带到其他设备，换浏览器也不会丢。",
+    upsellCta: "升级 Pro ☕",
+  },
+
+  notebook: {
+    navLabel: "单词本",
+    defaultName: "我的单词本",
+    pageTitle: "你的单词本",
+    pageIntro: "你在课程中收藏的单词都在这里，全部保存在这个浏览器里。",
+    backToLessons: "返回课程页",
+    statusFree: "{words}/{limit} 个单词 · 免费版",
+    statusPro: "{words} 个单词 · {notebooks} 个单词本",
+    emptyTitle: "还没有单词",
+    emptyBody: "打开一节课程，翻开单词卡，点击书签图标即可把单词收藏到这里。",
+    newNotebookCta: "新建单词本",
+    newNamePlaceholder: "主题名称",
+    createCta: "创建",
+    cancel: "取消",
+    renameCta: "重命名",
+    saveNameCta: "保存",
+    deleteCta: "删除单词本",
+    deleteTitle: "确定删除这个单词本？",
+    deleteBody: "“{name}”里的所有单词都会一起消失，且无法恢复。",
+    deleteConfirmCta: "删除",
+    removeAria: "从单词本移除：{word}",
+    removeTitle: "从单词本移除",
+    sourceVideo: "观看原视频",
+    wordCount: "{count} 个单词",
+    pickTitle: "把“{word}”保存到哪个单词本？",
+    saveTitle: "收藏到单词本",
+    saveAria: "把 {word} 收藏到单词本",
+    savedTitle: "已收藏——点击取消",
+    savedAria: "把 {word} 从单词本移除",
+    limitTitle: "免费版单词本已满",
+    limitBody:
+      "免费版只能在一个单词本里保存 {limit} 个单词。升级 Pro 即可无限保存，并按主题分成多个单词本。",
+    limitCta: "升级 Pro ☕",
+    notebookLimitTitle: "按主题分本是 Pro 版功能",
+    notebookLimitBody:
+      "免费版只有一个单词本。升级 Pro 可以按主题分类——工作、旅行、考试——并在保存时选择放进哪一本。",
+  },
+
+  notebookBackup: {
+    title: "单词本备份",
+    proTag: "✨ Pro",
+    description:
+      "把所有单词本导出为一个 JSON 文件，或在另一台设备上导入。单词本只存在这个浏览器里，清除浏览器数据就会丢失。",
+    exportCta: "导出 JSON",
+    importCta: "导入 JSON",
+    statusEmpty: "还没有可导出的单词本。",
+    statusExported: "已导出 {notebooks} 个单词本，共 {words} 个单词。",
+    statusImported: "已导入 {words} 个单词，新增 {notebooks} 个单词本。",
+    statusSkipped: "跳过 {count} 个已存在的单词。",
+    statusDropped: "文件中有 {count} 条数据已损坏，已跳过。",
+    errorInvalidJson: "无法读取该文件——它不是有效的 JSON。",
+    errorNotBackup: "这不是 LearnFluent 的单词本备份文件。",
+    errorWrongSchema: "该文件由更早的单词本版本导出，已经无法恢复。",
+    errorEmpty: "文件中没有可用的单词本。",
+    errorReadFailed: "无法打开该文件，请重新选择。",
+    upsellTitle: "单词本备份是 Pro 版功能",
+    upsellBody:
+      "你正在使用免费版，暂时无法导出或导入单词本。升级 Pro 即可把单词带到其他设备，换浏览器也不会丢。",
+    upsellCta: "升级 Pro ☕",
+  },
+
   lesson: {
     ready: "你的课程已经准备好了！",
     thumbnailAlt: "视频缩略图：{title}",
@@ -96,6 +183,22 @@ const zh: Dictionary = {
     upsell: "Pro 版为{everyWord}解锁扩展释义、常用搭配和词族。{cta}",
     upsellEveryWord: "每一个单词",
     upsellCta: "升级 Pro ☕",
+  },
+
+  cefr: {
+    lessonLabel: "难度",
+    unknown: "—",
+    unknownTitle: "这节课是在难度标签上线之前保存的",
+    lessonAria: "本课的 CEFR 难度：{level}",
+    wordAria: "该单词的 CEFR 难度：{level}",
+    names: {
+      A1: "入门",
+      A2: "初级",
+      B1: "中级",
+      B2: "中高级",
+      C1: "高级",
+      C2: "精通",
+    },
   },
 
   idioms: {

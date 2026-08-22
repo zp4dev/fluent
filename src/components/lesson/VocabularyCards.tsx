@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import CefrBadge from "@/components/lesson/CefrBadge";
+import SaveWordButton from "@/components/notebook/SaveWordButton";
 import SpeakButton from "@/components/SpeakButton";
 import { CHECKOUT_URL } from "@/lib/checkout";
 import { useI18n } from "@/lib/i18n/context";
@@ -24,6 +26,8 @@ interface VocabularyCardsProps {
   items: VocabularyItem[];
   onReview?: (word: string) => void;
   isPro?: boolean;
+  /** Stored with a saved word so its lesson can be found again. */
+  videoId?: string;
 }
 
 interface VocabularyCardProps {
@@ -31,6 +35,7 @@ interface VocabularyCardProps {
   isFlipped: boolean;
   extrasOpen: boolean;
   isPreview: boolean;
+  videoId?: string;
   onSelect: () => void;
   onToggleExtras: () => void;
 }
@@ -40,6 +45,7 @@ function VocabularyCard({
   isFlipped,
   extrasOpen,
   isPreview,
+  videoId,
   onSelect,
   onToggleExtras,
 }: VocabularyCardProps) {
@@ -109,6 +115,10 @@ function VocabularyCard({
         {/* FRONT */}
         <div className="flip-face flex flex-col items-center justify-center rounded-2xl border-2 border-border bg-card p-6 shadow-sm">
           {previewTag}
+          {/* Top-LEFT so it never collides with the Pro tag opposite it. The
+              level is readable before the card is flipped on purpose: it lets
+              a learner skip a word that is far above them. */}
+          <CefrBadge level={item.cefr} className="absolute left-3 top-3 z-10" />
           <span className="shrink-0 text-xs font-bold uppercase tracking-wider text-primary">
             {t.vocabulary.tapToReveal}
           </span>
@@ -141,11 +151,22 @@ function VocabularyCard({
                     {item.word}
                   </p>
                   <SpeakButton text={item.word} />
+                  {/* On the back face only: a word is worth keeping once you
+                      have seen what it means. */}
+                  <SaveWordButton item={item} videoId={videoId} />
                 </div>
-                {item.partOfSpeech ? (
-                  <p className="text-xs font-semibold italic text-muted">
-                    {item.partOfSpeech}
-                  </p>
+                {item.partOfSpeech || item.cefr ? (
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                    {item.partOfSpeech ? (
+                      <p className="text-xs font-semibold italic text-muted">
+                        {item.partOfSpeech}
+                      </p>
+                    ) : null}
+                    {/* Inline here rather than pinned to the corner: the back
+                        face scrolls, and an absolute chip would sit on top of
+                        the text sliding under it. */}
+                    <CefrBadge level={item.cefr} />
+                  </div>
                 ) : null}
               </div>
 
@@ -321,6 +342,7 @@ export default function VocabularyCards({
   items,
   onReview,
   isPro = false,
+  videoId,
 }: VocabularyCardsProps) {
   const { t } = useI18n();
   const [flippedWord, setFlippedWord] = useState<string | null>(null);
@@ -385,6 +407,7 @@ export default function VocabularyCards({
             isFlipped={flippedWord === item.word}
             extrasOpen={expandedExtras.has(item.word)}
             isPreview={!isPro && !allHaveDepth && itemHasDepth(item)}
+            videoId={videoId}
             onSelect={() => handleCardClick(item.word)}
             onToggleExtras={() => toggleExtras(item.word)}
           />

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import EmailVerification from "@/components/EmailVerification";
+import LessonBackup from "@/components/LessonBackup";
 import LessonDisplay from "@/components/LessonDisplay";
 import SavedLessons from "@/components/SavedLessons";
 import { CHECKOUT_URL } from "@/lib/checkout";
@@ -181,9 +182,18 @@ export default function LessonGenerator() {
       }
 
       setResult(data);
-      // Persist the freshly generated lesson (and refresh the list).
-      setSavedIndex(saveLesson(data, locale));
-      if (!isPro) {
+      // Persist the freshly generated lesson (and refresh the list). Rebuilt
+      // field by field rather than spread: `cached` describes how THIS response
+      // was served and `error`/`code` are transport concerns — none of them
+      // belong in storage.
+      setSavedIndex(
+        saveLesson({ lesson: data.lesson, videoId: data.videoId }, locale),
+      );
+
+      // A cached lesson cost nothing to serve, so it does not spend one of the
+      // three free lessons a day. The server applies the same rule to the Pro
+      // fair-use cap.
+      if (!isPro && !data.cached) {
         increment();
       }
     } catch (submitError) {
@@ -328,6 +338,14 @@ export default function LessonGenerator() {
         items={savedIndex}
         onSelect={handleSelectSaved}
         onDelete={handleDeleteSaved}
+      />
+
+      {/* Outside SavedLessons on purpose: that list hides itself when nothing
+          is saved, which is exactly the moment someone needs to IMPORT. */}
+      <LessonBackup
+        isPro={isPro}
+        hydrated={licenseHydrated}
+        onImported={setSavedIndex}
       />
 
       {blockedByProDaily ? (

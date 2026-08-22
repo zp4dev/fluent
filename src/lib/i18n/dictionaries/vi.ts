@@ -14,6 +14,9 @@ const vi = {
     upgradeTitle: "Nâng cấp Pro — Fluent",
     upgradeDescription:
       "Nâng cấp Fluent Pro để mở khóa nghĩa mở rộng, cụm từ đi kèm và họ từ vựng cho mọi từ.",
+    notebookTitle: "Sổ từ — Fluent",
+    notebookDescription:
+      "Lưu lại những từ quan trọng bạn gặp trong bài học và ôn lại bất cứ lúc nào.",
   },
 
   common: {
@@ -85,6 +88,96 @@ const vi = {
     deleteTitle: "Xoá bài học",
   },
 
+  backup: {
+    title: "Sao lưu bài học",
+    proTag: "✨ Pro",
+    description:
+      "Xuất toàn bộ bài học đã lưu ra một file JSON, hoặc nhập lại trên máy khác. Bài học chỉ nằm trong trình duyệt này, nên xoá dữ liệu trình duyệt là mất.",
+    exportCta: "Xuất file JSON",
+    importCta: "Nhập file JSON",
+    statusEmpty: "Chưa có bài học nào để xuất.",
+    statusExported: "Đã xuất {count} bài học.",
+    statusImported: "Đã nhập {count} bài học.",
+    statusSkipped: "Bỏ qua {count} bài đã có bản mới hơn.",
+    statusDropped: "{count} mục trong file bị hỏng nên đã bỏ qua.",
+    statusFailed: "{count} bài chưa lưu được vì bộ nhớ trình duyệt đã đầy.",
+    errorInvalidJson: "Không đọc được file — đây không phải JSON hợp lệ.",
+    errorNotBackup: "Đây không phải file sao lưu của LearnFluent.",
+    errorWrongSchema:
+      "File này được xuất từ phiên bản bài học cũ hơn nên không dùng lại được.",
+    errorNoLessons: "Không có bài học hợp lệ nào trong file.",
+    errorReadFailed: "Không mở được file. Hãy thử chọn lại.",
+    upsellTitle: "Sao lưu là tính năng của gói Pro",
+    upsellBody:
+      "Bạn đang dùng gói miễn phí nên chưa xuất hoặc nhập được bài học. Nâng cấp Pro để mang toàn bộ bài học sang máy khác và giữ lại khi đổi trình duyệt.",
+    upsellCta: "Nâng cấp Pro ☕",
+  },
+
+  notebook: {
+    navLabel: "Sổ từ",
+    defaultName: "Sổ từ của tôi",
+    pageTitle: "Sổ từ của bạn",
+    pageIntro:
+      "Những từ bạn đánh dấu trong bài học được giữ lại ở đây. Tất cả nằm trong trình duyệt này.",
+    backToLessons: "Về trang bài học",
+    statusFree: "{words}/{limit} từ · gói miễn phí",
+    statusPro: "{words} từ · {notebooks} sổ",
+    emptyTitle: "Chưa có từ nào",
+    emptyBody:
+      "Mở một bài học, lật thẻ từ vựng rồi bấm dấu trang để lưu từ vào đây.",
+    newNotebookCta: "Sổ mới",
+    newNamePlaceholder: "Tên chủ đề",
+    createCta: "Tạo",
+    cancel: "Huỷ",
+    renameCta: "Đổi tên",
+    saveNameCta: "Lưu",
+    deleteCta: "Xoá sổ",
+    deleteTitle: "Xoá sổ từ này?",
+    deleteBody:
+      "Toàn bộ từ trong “{name}” sẽ mất và không khôi phục lại được.",
+    deleteConfirmCta: "Xoá",
+    removeAria: "Bỏ từ khỏi sổ: {word}",
+    removeTitle: "Bỏ khỏi sổ",
+    sourceVideo: "Xem video gốc",
+    wordCount: "{count} từ",
+    pickTitle: "Lưu “{word}” vào sổ nào?",
+    saveTitle: "Lưu vào sổ từ",
+    saveAria: "Lưu {word} vào sổ từ",
+    savedTitle: "Đã lưu — bấm để bỏ",
+    savedAria: "Bỏ {word} khỏi sổ từ",
+    limitTitle: "Sổ từ miễn phí đã đầy",
+    limitBody:
+      "Gói miễn phí lưu được {limit} từ trong một sổ duy nhất. Nâng cấp Pro để lưu không giới hạn và chia thành nhiều sổ theo chủ đề.",
+    limitCta: "Nâng cấp Pro ☕",
+    notebookLimitTitle: "Nhiều sổ theo chủ đề là tính năng Pro",
+    notebookLimitBody:
+      "Gói miễn phí chỉ có một sổ. Nâng cấp Pro để tách từ vựng theo chủ đề — công việc, du lịch, thi cử — và chọn sổ mỗi khi lưu.",
+  },
+
+  notebookBackup: {
+    title: "Sao lưu sổ từ",
+    proTag: "✨ Pro",
+    description:
+      "Xuất toàn bộ sổ từ ra một file JSON, hoặc nhập lại trên máy khác. Sổ từ chỉ nằm trong trình duyệt này, nên xoá dữ liệu trình duyệt là mất.",
+    exportCta: "Xuất file JSON",
+    importCta: "Nhập file JSON",
+    statusEmpty: "Chưa có sổ từ nào để xuất.",
+    statusExported: "Đã xuất {words} từ trong {notebooks} sổ.",
+    statusImported: "Đã nhập {words} từ, thêm {notebooks} sổ mới.",
+    statusSkipped: "Bỏ qua {count} từ đã có sẵn.",
+    statusDropped: "{count} mục trong file bị hỏng nên đã bỏ qua.",
+    errorInvalidJson: "Không đọc được file — đây không phải JSON hợp lệ.",
+    errorNotBackup: "Đây không phải file sao lưu sổ từ của LearnFluent.",
+    errorWrongSchema:
+      "File này được xuất từ phiên bản sổ từ cũ hơn nên không dùng lại được.",
+    errorEmpty: "Không có sổ từ hợp lệ nào trong file.",
+    errorReadFailed: "Không mở được file. Hãy thử chọn lại.",
+    upsellTitle: "Sao lưu sổ từ là tính năng Pro",
+    upsellBody:
+      "Bạn đang dùng gói miễn phí nên chưa xuất hoặc nhập được sổ từ. Nâng cấp Pro để mang sổ từ sang máy khác và giữ lại khi đổi trình duyệt.",
+    upsellCta: "Nâng cấp Pro ☕",
+  },
+
   lesson: {
     ready: "Bài học của bạn đã sẵn sàng!",
     thumbnailAlt: "Ảnh thu nhỏ của video: {title}",
@@ -105,6 +198,22 @@ const vi = {
     upsell: "Bản Pro mở khóa nghĩa mở rộng, cụm từ đi kèm và họ từ vựng cho {everyWord}. {cta}",
     upsellEveryWord: "mọi từ",
     upsellCta: "Nâng cấp Pro ☕",
+  },
+
+  cefr: {
+    lessonLabel: "Trình độ",
+    unknown: "—",
+    unknownTitle: "Bài học này được lưu trước khi có nhãn trình độ",
+    lessonAria: "Trình độ CEFR của bài học: {level}",
+    wordAria: "Trình độ CEFR của từ: {level}",
+    names: {
+      A1: "Mới bắt đầu",
+      A2: "Sơ cấp",
+      B1: "Trung cấp",
+      B2: "Trung cấp trên",
+      C1: "Cao cấp",
+      C2: "Thành thạo",
+    },
   },
 
   idioms: {

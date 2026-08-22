@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import DownloadPdfButton from "@/components/DownloadPdfButton";
+import CefrBadge from "@/components/lesson/CefrBadge";
 import GrammarSection from "@/components/lesson/GrammarSection";
 import IdiomsSection from "@/components/lesson/IdiomsSection";
 import QuizSection from "@/components/lesson/QuizSection";
@@ -169,9 +170,15 @@ export default function LessonDisplay({
           </a>
 
           <div className="flex-1 space-y-3 text-center sm:text-left">
-            <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#999]">
-              {t.lesson.ready}
-            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 sm:justify-start">
+              <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#999]">
+                {t.lesson.ready}
+              </p>
+              {/* Always rendered, even with no level: the lesson header is
+                  where a learner looks to decide whether the video is for
+                  them, so an honest "—" beats a chip that comes and goes. */}
+              <CefrBadge level={lesson.level} variant="lesson" />
+            </div>
             <h2 className="text-3xl font-extrabold leading-tight text-heading">
               {lesson.title}
             </h2>
@@ -193,6 +200,15 @@ export default function LessonDisplay({
                 >
                   {summaryExpanded ? t.common.showLess : t.common.showMore}
                 </button>
+              ) : null}
+
+              {/* Why the video is that level. Never clamped: it is one
+                  sentence, and it is the part that makes the chip mean
+                  something. */}
+              {lesson.levelNote ? (
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                  {lesson.levelNote}
+                </p>
               ) : null}
             </div>
 
@@ -310,6 +326,7 @@ export default function LessonDisplay({
             items={lesson.vocabulary}
             onReview={handleReviewWord}
             isPro={isPro}
+            videoId={videoId}
           />
         ) : null}
 

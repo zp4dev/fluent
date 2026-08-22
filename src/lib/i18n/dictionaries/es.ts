@@ -7,6 +7,9 @@ const es: Dictionary = {
     upgradeTitle: "Hazte Pro — Fluent",
     upgradeDescription:
       "Hazte Fluent Pro para desbloquear significados ampliados, colocaciones y familias de palabras para cada palabra.",
+    notebookTitle: "Cuaderno — Fluent",
+    notebookDescription:
+      "Guarda las palabras importantes de tus lecciones y repásalas cuando quieras.",
   },
 
   common: {
@@ -78,6 +81,97 @@ const es: Dictionary = {
     deleteTitle: "Eliminar lección",
   },
 
+  backup: {
+    title: "Copia de seguridad",
+    proTag: "✨ Pro",
+    description:
+      "Exporta todas tus lecciones guardadas a un archivo JSON, o impórtalas en otro dispositivo. Las lecciones solo viven en este navegador: si borras sus datos, se pierden.",
+    exportCta: "Exportar JSON",
+    importCta: "Importar JSON",
+    statusEmpty: "Todavía no hay lecciones guardadas para exportar.",
+    statusExported: "Se exportaron {count} lecciones.",
+    statusImported: "Se importaron {count} lecciones.",
+    statusSkipped: "Se omitieron {count} que ya están aquí en una versión más reciente.",
+    statusDropped: "{count} entradas del archivo estaban dañadas y se omitieron.",
+    statusFailed:
+      "{count} no se pudieron guardar: el almacenamiento del navegador está lleno.",
+    errorInvalidJson: "No se pudo leer el archivo: no es un JSON válido.",
+    errorNotBackup: "Ese no es un archivo de copia de seguridad de LearnFluent.",
+    errorWrongSchema:
+      "Este archivo se exportó con un formato de lección anterior y ya no se puede restaurar.",
+    errorNoLessons: "No se encontró ninguna lección válida en el archivo.",
+    errorReadFailed: "No se pudo abrir el archivo. Inténtalo de nuevo.",
+    upsellTitle: "La copia de seguridad es una función Pro",
+    upsellBody:
+      "Estás en el plan gratuito, así que todavía no puedes exportar ni importar lecciones. Hazte Pro para llevarlas a otro dispositivo y conservarlas al cambiar de navegador.",
+    upsellCta: "Hazte Pro ☕",
+  },
+
+  notebook: {
+    navLabel: "Cuaderno",
+    defaultName: "Mi cuaderno",
+    pageTitle: "Tu cuaderno",
+    pageIntro:
+      "Las palabras que marcas en una lección se guardan aquí. Todo vive en este navegador.",
+    backToLessons: "Volver a las lecciones",
+    statusFree: "{words}/{limit} palabras · plan gratuito",
+    statusPro: "{words} palabras · {notebooks} cuadernos",
+    emptyTitle: "Todavía no hay palabras",
+    emptyBody:
+      "Abre una lección, gira una tarjeta de vocabulario y toca el marcador para guardar la palabra aquí.",
+    newNotebookCta: "Nuevo cuaderno",
+    newNamePlaceholder: "Nombre del tema",
+    createCta: "Crear",
+    cancel: "Cancelar",
+    renameCta: "Renombrar",
+    saveNameCta: "Guardar",
+    deleteCta: "Eliminar cuaderno",
+    deleteTitle: "¿Eliminar este cuaderno?",
+    deleteBody:
+      "Se irán todas las palabras de «{name}», y no se puede deshacer.",
+    deleteConfirmCta: "Eliminar",
+    removeAria: "Quitar del cuaderno: {word}",
+    removeTitle: "Quitar del cuaderno",
+    sourceVideo: "Ver el vídeo original",
+    wordCount: "{count} palabras",
+    pickTitle: "¿En qué cuaderno guardamos «{word}»?",
+    saveTitle: "Guardar en el cuaderno",
+    saveAria: "Guardar {word} en tu cuaderno",
+    savedTitle: "Guardada — toca para quitar",
+    savedAria: "Quitar {word} de tu cuaderno",
+    limitTitle: "Tu cuaderno gratuito está lleno",
+    limitBody:
+      "El plan gratuito guarda {limit} palabras en un único cuaderno. Hazte Pro para tener palabras ilimitadas repartidas en todos los temas que quieras.",
+    limitCta: "Hazte Pro ☕",
+    notebookLimitTitle: "Los cuadernos por tema son una función Pro",
+    notebookLimitBody:
+      "El plan gratuito tiene un solo cuaderno. Hazte Pro para separar tus palabras por tema — trabajo, viajes, exámenes — y elegir dónde va cada una al guardarla.",
+  },
+
+  notebookBackup: {
+    title: "Copia del cuaderno",
+    proTag: "✨ Pro",
+    description:
+      "Exporta todos tus cuadernos a un archivo JSON, o impórtalos en otro dispositivo. Los cuadernos solo viven en este navegador: si borras sus datos, se pierden.",
+    exportCta: "Exportar JSON",
+    importCta: "Importar JSON",
+    statusEmpty: "Todavía no hay cuadernos para exportar.",
+    statusExported: "Se exportaron {words} palabras en {notebooks} cuadernos.",
+    statusImported: "Se importaron {words} palabras y {notebooks} cuadernos nuevos.",
+    statusSkipped: "Se omitieron {count} palabras que ya estaban aquí.",
+    statusDropped: "{count} entradas del archivo estaban dañadas y se omitieron.",
+    errorInvalidJson: "No se pudo leer el archivo: no es un JSON válido.",
+    errorNotBackup: "Ese no es un archivo de copia de cuadernos de LearnFluent.",
+    errorWrongSchema:
+      "Este archivo se exportó con un formato de cuaderno anterior y ya no se puede restaurar.",
+    errorEmpty: "No se encontró ningún cuaderno válido en el archivo.",
+    errorReadFailed: "No se pudo abrir el archivo. Inténtalo de nuevo.",
+    upsellTitle: "La copia del cuaderno es una función Pro",
+    upsellBody:
+      "Estás en el plan gratuito, así que todavía no puedes exportar ni importar cuadernos. Hazte Pro para llevar tus palabras a otro dispositivo y conservarlas al cambiar de navegador.",
+    upsellCta: "Hazte Pro ☕",
+  },
+
   lesson: {
     ready: "¡Tu lección está lista!",
     thumbnailAlt: "Miniatura del vídeo: {title}",
@@ -99,6 +193,22 @@ const es: Dictionary = {
       "Pro desbloquea significados ampliados, colocaciones y familias de palabras para {everyWord}. {cta}",
     upsellEveryWord: "cada palabra",
     upsellCta: "Hazte Pro ☕",
+  },
+
+  cefr: {
+    lessonLabel: "Nivel",
+    unknown: "—",
+    unknownTitle: "Esta lección se guardó antes de que existieran los niveles",
+    lessonAria: "Nivel MCER de la lección: {level}",
+    wordAria: "Nivel MCER de la palabra: {level}",
+    names: {
+      A1: "Principiante",
+      A2: "Básico",
+      B1: "Intermedio",
+      B2: "Intermedio alto",
+      C1: "Avanzado",
+      C2: "Dominio",
+    },
   },
 
   idioms: {
