@@ -56,6 +56,7 @@ const es: Dictionary = {
     hintPaused:
       "La creación de lecciones está en pausa por una actualización. ¡Vuelve en unos minutos!",
     proBadge: "☕ Pro",
+    trialBadge: "🎁 Prueba: quedan {days} días",
     remaining: "Te quedan {remaining}/{limit} lecciones hoy",
     restoreIntro:
       "Introduce el correo con el que pagaste. Te enviaremos un código de verificación para confirmar que eres tú.",
@@ -241,9 +242,14 @@ const es: Dictionary = {
 
   pdf: {
     download: "Descargar PDF",
-    comingSoonTitle: "¡Muy pronto!",
-    comingSoonBody:
-      "La descarga en PDF aún se está puliendo. Gracias por tu paciencia, ¡llegará pronto!",
+    downloading: "Generando el PDF...",
+    downloadFailed: "No se pudo descargar el PDF. Inténtalo de nuevo.",
+    notPro: "Esta función es solo para Fluent Pro.",
+    limitReached:
+      "Has descargado un PDF 3 veces en la última hora. Inténtalo de nuevo en unos minutos! ⏳",
+    limitReachedTitle: "Sin descargas de PDF disponibles",
+    limitReachedBody:
+      "Has descargado un PDF 3 veces en la última hora. Podrás volver a hacerlo en unos minutos, ¡hasta pronto! ⏳",
     upsellTitle: "La descarga en PDF es una función Pro",
     upsellBody:
       "Hazte Pro para descargar las lecciones en un PDF cuidado — para imprimir, repasar y practicar la escritura en papel.",
@@ -334,6 +340,7 @@ const es: Dictionary = {
     annualBadge: "Ahorra ~33%",
     monthlyName: "Pro — 1 mes",
     monthlyPeriod: "/mes",
+    trialName: "Prueba",
   },
 
   admin: {
@@ -384,6 +391,15 @@ const es: Dictionary = {
       "¿Conceder {plan} a {email}? No se envía ninguna confirmación por correo.",
     created: "Pro concedido a {email} hasta {expiresAt}.",
     createFailed: "No se ha podido conceder Pro.",
+    createTrialTitle: "Crear un usuario de prueba",
+    createTrialHint:
+      "Concede una prueba con duración limitada, sin enviar código de verificación. Revisa bien la dirección: un error se lo concede a quien la tenga.",
+    createTrialDurationLabel: "Duración de la prueba",
+    createTrialSubmit: "Conceder prueba",
+    createTrialConfirm:
+      "¿Conceder una prueba de {days} días a {email}? No se envía ninguna confirmación por correo.",
+    createdTrial:
+      "Prueba de {days} días concedida a {email}, hasta {expiresAt}.",
     trackedSince:
       "Las lecciones y las IP de acceso solo se registran desde que se lanzó esta función; los usuarios existentes muestran 0 hasta que vuelvan a usar la app.",
   },
@@ -424,6 +440,30 @@ const es: Dictionary = {
     skipped: "Omitido:",
     requestFailed: "La llamada ha fallado:",
     runFailed: "La ejecución ha fallado.",
+    backupTitle: "Inspeccionar un archivo JSON de contenido aprendido",
+    backupHint:
+      "Elige un archivo JSON exportado desde la app para ver si es una copia de lecciones guardadas, de cuadernos, o si no se reconoce. Solo lectura hasta que pulses importar.",
+    backupChoose: "Elegir archivo JSON...",
+    backupReadFailed: "No se pudo abrir el archivo. Inténtalo de nuevo.",
+    backupInvalidJson: "No se pudo leer — esto no es JSON válido.",
+    backupKindLabel: "Tipo detectado",
+    backupKindLessons: "Lecciones guardadas (saved-lessons)",
+    backupKindNotebooks: "Cuadernos (notebooks)",
+    backupKindUnknown: "No reconocido",
+    backupEnvelopeApp: "app",
+    backupEnvelopeFormatVersion: "formatVersion",
+    backupEnvelopeSchemaVersion: "schemaVersion",
+    backupEnvelopeExportedAt: "exportedAt",
+    backupTopLevelKeys: "Claves de nivel superior",
+    backupValidCount: "Válidos: {count}",
+    backupDroppedCount: "Descartados: {count}",
+    backupImportCta: "Importar en este navegador (prueba)",
+    backupImporting: "Importando...",
+    backupImportWarning:
+      "⚠️ Escribe directamente en el localStorage de este navegador — para pruebas, no para datos reales.",
+    backupImportedLessons: "Se importaron {count} lección(es) en este navegador.",
+    backupImportedNotebooks:
+      "Se importaron {words} palabra(s) en {notebooks} cuaderno(s) de este navegador.",
   },
 
   email: {

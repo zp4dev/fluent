@@ -29,21 +29,30 @@ export function useProStatus() {
   const {
     email,
     isPro: sessionPro,
+    plan,
+    daysLeft,
     loaded: sessionLoaded,
     refresh,
     signOut,
   } = useSession();
 
   const isPro = hasLicense || sessionPro;
+  const source = (hasLicense ? "license" : sessionPro ? "order" : null) as ProSource;
 
   return {
     isPro,
     hydrated: licenseHydrated && sessionLoaded,
-    source: (hasLicense ? "license" : sessionPro ? "order" : null) as ProSource,
+    source,
     /** Still sent to the API so the server can verify the license path. */
     licenseKey,
     /** The verified address, or null when signed out. */
     email,
+    /**
+     * Trial state, e.g. "trial" + days left. Only meaningful for the `"order"`
+     * source — a Lemon Squeezy license has no trial concept to surface.
+     */
+    plan: source === "order" ? plan : null,
+    daysLeft: source === "order" ? daysLeft : null,
     /** Re-read the session after signing in. */
     refresh,
     signOut,

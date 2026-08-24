@@ -54,6 +54,7 @@ const zh: Dictionary = {
     hint: "带英文字幕的视频效果最好。",
     hintPaused: "课程生成正在升级中暂停，请过几分钟再回来！",
     proBadge: "☕ Pro",
+    trialBadge: "🎁 试用：剩 {days} 天",
     remaining: "今天还剩 {remaining}/{limit} 次",
     restoreIntro:
       "请输入你付款时使用的邮箱。我们会发送验证码来确认是你本人。",
@@ -231,8 +232,12 @@ const zh: Dictionary = {
 
   pdf: {
     download: "下载 PDF",
-    comingSoonTitle: "即将推出！",
-    comingSoonBody: "PDF 下载功能还在打磨中。谢谢你的等待 — 很快就会上线！",
+    downloading: "正在生成 PDF...",
+    downloadFailed: "PDF 下载失败，请重试。",
+    notPro: "此功能仅限 Fluent Pro 使用。",
+    limitReached: "你在过去一小时内已下载 3 次 PDF，请几分钟后再试！⏳",
+    limitReachedTitle: "PDF 下载次数已用完",
+    limitReachedBody: "你在过去一小时内已下载 3 次 PDF，几分钟后即可恢复，到时再见！⏳",
     upsellTitle: "PDF 下载是 Pro 功能",
     upsellBody:
       "升级 Pro 即可把课程下载成精美的 PDF — 方便打印、复习，以及在纸上练习写作。",
@@ -307,6 +312,7 @@ const zh: Dictionary = {
     annualBadge: "省约 33%",
     monthlyName: "Pro 月付",
     monthlyPeriod: "/月",
+    trialName: "试用",
   },
 
   admin: {
@@ -354,6 +360,12 @@ const zh: Dictionary = {
     createConfirm: "为 {email} 开通{plan}？不会发送确认邮件。",
     created: "已为 {email} 开通 Pro，有效期至 {expiresAt}。",
     createFailed: "开通 Pro 失败。",
+    createTrialTitle: "创建试用用户",
+    createTrialHint: "开通限时试用，不发送验证码。请仔细核对邮箱 — 输错会把试用开给别人。",
+    createTrialDurationLabel: "试用天数",
+    createTrialSubmit: "开通试用",
+    createTrialConfirm: "为 {email} 开通 {days} 天试用？不会发送确认邮件。",
+    createdTrial: "已为 {email} 开通 {days} 天试用，有效期至 {expiresAt}。",
     trackedSince:
       "课程数和登录 IP 只会从本功能上线后开始记录 — 老用户在下次使用前都会显示为 0。",
   },
@@ -392,6 +404,29 @@ const zh: Dictionary = {
     skipped: "已跳过：",
     requestFailed: "调用失败：",
     runFailed: "运行失败。",
+    backupTitle: "检查已学内容 JSON 文件",
+    backupHint:
+      "选择一个从应用导出的 JSON 文件，查看它是已保存的课程、单词本，还是无法识别。只读查看，直到你点击导入。",
+    backupChoose: "选择 JSON 文件...",
+    backupReadFailed: "无法打开文件，请重新选择。",
+    backupInvalidJson: "无法读取 — 这不是有效的 JSON。",
+    backupKindLabel: "检测到的类型",
+    backupKindLessons: "已保存课程（saved-lessons）",
+    backupKindNotebooks: "单词本（notebooks）",
+    backupKindUnknown: "无法识别",
+    backupEnvelopeApp: "app",
+    backupEnvelopeFormatVersion: "formatVersion",
+    backupEnvelopeSchemaVersion: "schemaVersion",
+    backupEnvelopeExportedAt: "exportedAt",
+    backupTopLevelKeys: "顶层字段",
+    backupValidCount: "有效：{count}",
+    backupDroppedCount: "已跳过：{count}",
+    backupImportCta: "导入到此浏览器（测试）",
+    backupImporting: "导入中...",
+    backupImportWarning:
+      "⚠️ 会直接写入当前浏览器的 localStorage — 仅用于测试，不是真实数据。",
+    backupImportedLessons: "已将 {count} 个课程导入此浏览器。",
+    backupImportedNotebooks: "已将 {words} 个单词导入此浏览器的 {notebooks} 个单词本。",
   },
 
   email: {

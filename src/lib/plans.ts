@@ -55,6 +55,19 @@ export function isPlanId(value: unknown): value is PlanId {
   return value === "annual" || value === "monthly";
 }
 
+/**
+ * Free-trial lengths an admin can grant. Kept separate from `PlanId`/`PLANS`
+ * on purpose: a trial has no price and must never show up in the paid
+ * checkout list that `PLAN_ORDER` drives.
+ */
+export type TrialDurationDays = 1 | 3 | 7;
+
+export const TRIAL_DURATIONS: TrialDurationDays[] = [1, 3, 7];
+
+export function isTrialDurationDays(value: unknown): value is TrialDurationDays {
+  return value === 1 || value === 3 || value === 7;
+}
+
 export function formatVnd(amount: number): string {
   return `${amount.toLocaleString("vi-VN")}đ`;
 }

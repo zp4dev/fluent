@@ -56,6 +56,7 @@ const en: Dictionary = {
     hintPaused:
       "Lesson generation is paused for an upgrade. Please check back in a few minutes!",
     proBadge: "☕ Pro",
+    trialBadge: "🎁 Trial: {days} days left",
     remaining: "{remaining}/{limit} lessons left today",
     restoreIntro:
       "Enter the email you paid with. We'll send a verification code to make sure it's you.",
@@ -239,9 +240,14 @@ const en: Dictionary = {
 
   pdf: {
     download: "Download PDF",
-    comingSoonTitle: "Coming soon!",
-    comingSoonBody:
-      "PDF download is still being polished. Thanks for waiting — it'll be here soon!",
+    downloading: "Building your PDF...",
+    downloadFailed: "Could not download the PDF. Please try again.",
+    notPro: "This feature is Fluent Pro only.",
+    limitReached:
+      "You've downloaded a PDF 3 times in the last hour. Please try again in a few minutes! ⏳",
+    limitReachedTitle: "Out of PDF downloads",
+    limitReachedBody:
+      "You've downloaded a PDF 3 times in the last hour. It'll open back up in a few minutes — see you then! ⏳",
     upsellTitle: "PDF download is a Pro feature",
     upsellBody:
       "Upgrade to Pro to download lessons as a clean PDF — for printing, reviewing and writing practice on paper.",
@@ -324,6 +330,7 @@ const en: Dictionary = {
     annualBadge: "Save ~33%",
     monthlyName: "Pro — 1 month",
     monthlyPeriod: "/month",
+    trialName: "Trial",
   },
 
   admin: {
@@ -373,6 +380,14 @@ const en: Dictionary = {
     createConfirm: "Grant {plan} to {email}? No email confirmation is sent.",
     created: "Granted Pro to {email} until {expiresAt}.",
     createFailed: "Could not grant Pro.",
+    createTrialTitle: "Create a trial user",
+    createTrialHint:
+      "Grants a time-limited trial, with no verification code sent. Check the address carefully — a typo grants it to whoever owns it.",
+    createTrialDurationLabel: "Trial length",
+    createTrialSubmit: "Grant trial",
+    createTrialConfirm:
+      "Grant a {days}-day trial to {email}? No email confirmation is sent.",
+    createdTrial: "Granted a {days}-day trial to {email}, until {expiresAt}.",
     trackedSince:
       "Lesson counts and login IPs are only recorded from the moment this feature shipped — existing users read 0 until they next use the app.",
   },
@@ -413,6 +428,30 @@ const en: Dictionary = {
     skipped: "Skipped:",
     requestFailed: "The call failed:",
     runFailed: "The run failed.",
+    backupTitle: "Inspect a learned-content JSON file",
+    backupHint:
+      "Choose a JSON file exported from the app to see whether it's a saved-lessons backup, a notebooks backup, or unrecognised. Read-only until you press import.",
+    backupChoose: "Choose a JSON file...",
+    backupReadFailed: "Could not open the file. Try choosing it again.",
+    backupInvalidJson: "Could not read it — this isn't valid JSON.",
+    backupKindLabel: "Detected kind",
+    backupKindLessons: "Saved lessons (saved-lessons)",
+    backupKindNotebooks: "Notebooks (notebooks)",
+    backupKindUnknown: "Not recognised",
+    backupEnvelopeApp: "app",
+    backupEnvelopeFormatVersion: "formatVersion",
+    backupEnvelopeSchemaVersion: "schemaVersion",
+    backupEnvelopeExportedAt: "exportedAt",
+    backupTopLevelKeys: "Top-level keys",
+    backupValidCount: "Valid: {count}",
+    backupDroppedCount: "Dropped: {count}",
+    backupImportCta: "Import into this browser (test)",
+    backupImporting: "Importing...",
+    backupImportWarning:
+      "⚠️ Writes directly into this browser's localStorage — for testing, not real data.",
+    backupImportedLessons: "Imported {count} lesson(s) into this browser.",
+    backupImportedNotebooks:
+      "Imported {words} word(s) into {notebooks} notebook(s) in this browser.",
   },
 
   email: {

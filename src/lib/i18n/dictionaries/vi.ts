@@ -63,6 +63,7 @@ const vi = {
     hintPaused:
       "Tính năng tạo bài học đang tạm dừng để nâng cấp. Quay lại sau ít phút nhé!",
     proBadge: "☕ Pro",
+    trialBadge: "🎁 Dùng thử: còn {days} ngày",
     remaining: "Còn lại: {remaining}/{limit} lượt hôm nay",
     restoreIntro:
       "Nhập email bạn đã dùng khi thanh toán. Mình gửi mã xác thực để chắc chắn đúng là bạn.",
@@ -246,9 +247,14 @@ const vi = {
 
   pdf: {
     download: "Tải PDF",
-    comingSoonTitle: "Sắp có rồi!",
-    comingSoonBody:
-      "Tính năng tải PDF đang được hoàn thiện. Cảm ơn bạn đã chờ — mình sẽ sớm mang đến nhé!",
+    downloading: "Đang tạo PDF...",
+    downloadFailed: "Không tải được PDF. Bạn thử lại nhé.",
+    notPro: "Tính năng này chỉ dành cho Fluent Pro.",
+    limitReached:
+      "Bạn đã tải PDF 3 lần trong một giờ qua. Vui lòng thử lại sau ít phút nhé! ⏳",
+    limitReachedTitle: "Đã hết lượt tải PDF",
+    limitReachedBody:
+      "Bạn đã tải PDF 3 lần trong một giờ qua. Lượt tải sẽ có lại sau ít phút, hẹn gặp lại nhé! ⏳",
     upsellTitle: "Tải PDF là tính năng Pro",
     upsellBody:
       "Nâng cấp Pro để tải bài học dưới dạng PDF đẹp mắt — dùng để in, ôn tập và luyện viết ngay trên giấy.",
@@ -330,6 +336,7 @@ const vi = {
     annualBadge: "Tiết kiệm ~33%",
     monthlyName: "Pro 1 tháng",
     monthlyPeriod: "/tháng",
+    trialName: "Dùng thử",
   },
 
   admin: {
@@ -378,6 +385,14 @@ const vi = {
     createConfirm: "Cấp {plan} cho {email}? Không cần xác nhận qua email.",
     created: "Đã cấp Pro cho {email} đến {expiresAt}.",
     createFailed: "Cấp Pro thất bại.",
+    createTrialTitle: "Tạo người dùng dùng thử",
+    createTrialHint:
+      "Cấp gói dùng thử có giới hạn ngày, không gửi mã xác thực. Kiểm tra kỹ email — gõ sai là cấp nhầm cho người khác.",
+    createTrialDurationLabel: "Số ngày dùng thử",
+    createTrialSubmit: "Cấp dùng thử",
+    createTrialConfirm:
+      "Cấp dùng thử {days} ngày cho {email}? Không cần xác nhận qua email.",
+    createdTrial: "Đã cấp dùng thử {days} ngày cho {email}, hết hạn {expiresAt}.",
     trackedSince:
       "Số bài học và IP đăng nhập chỉ được ghi lại từ khi tính năng này ra mắt — người dùng cũ sẽ hiển thị 0 cho tới lần dùng tiếp theo.",
   },
@@ -418,6 +433,30 @@ const vi = {
     skipped: "Đã bỏ qua:",
     requestFailed: "Cú gọi thất bại:",
     runFailed: "Chạy thử thất bại.",
+    backupTitle: "Kiểm tra file JSON đã học",
+    backupHint:
+      "Chọn một file JSON xuất ra từ ứng dụng để xem đây là bài học đã lưu, sổ từ, hay không nhận diện được. Chỉ đọc để xem — không ghi gì cho tới khi bạn bấm nhập.",
+    backupChoose: "Chọn file JSON...",
+    backupReadFailed: "Không mở được file. Hãy thử chọn lại.",
+    backupInvalidJson: "Không đọc được — đây không phải JSON hợp lệ.",
+    backupKindLabel: "Loại phát hiện",
+    backupKindLessons: "Bài học đã lưu (saved-lessons)",
+    backupKindNotebooks: "Sổ từ (notebooks)",
+    backupKindUnknown: "Không nhận diện được",
+    backupEnvelopeApp: "app",
+    backupEnvelopeFormatVersion: "formatVersion",
+    backupEnvelopeSchemaVersion: "schemaVersion",
+    backupEnvelopeExportedAt: "exportedAt",
+    backupTopLevelKeys: "Các khoá cấp cao nhất",
+    backupValidCount: "Hợp lệ: {count}",
+    backupDroppedCount: "Bị bỏ qua: {count}",
+    backupImportCta: "Nhập vào trình duyệt này (test)",
+    backupImporting: "Đang nhập...",
+    backupImportWarning:
+      "⚠️ Ghi trực tiếp vào localStorage của trình duyệt hiện tại — dùng để test, không phải cho dữ liệu thật.",
+    backupImportedLessons: "Đã nhập {count} bài học vào trình duyệt này.",
+    backupImportedNotebooks:
+      "Đã nhập {words} từ vào {notebooks} sổ trong trình duyệt này.",
   },
 
   email: {

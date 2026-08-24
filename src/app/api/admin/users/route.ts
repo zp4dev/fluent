@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isAuthorizedAdmin } from "@/lib/adminAuth";
 import { grantPro, revokePro } from "@/lib/entitlements";
-import { isPlanId } from "@/lib/plans";
+import { isPlanId, isTrialDurationDays } from "@/lib/plans";
 import { isValidEmail, normalizeEmail } from "@/lib/validateEmail";
 
 /**
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     action?: string;
     email?: string;
     plan?: string;
+    durationDays?: string;
     secret?: string;
   };
 
@@ -72,17 +73,35 @@ export async function POST(request: Request) {
   }
 
   if (body.action === "grant") {
-    if (!isPlanId(body.plan)) {
+    const isTrial = body.plan === "trial";
+
+    if (!isTrial && !isPlanId(body.plan)) {
       return NextResponse.json(
         { error: "A valid plan is required." },
         { status: 400 },
       );
     }
 
+    let trialDurationDays: number | undefined;
+    if (isTrial) {
+      const parsed = Number(body.durationDays);
+      if (!isTrialDurationDays(parsed)) {
+        return NextResponse.json(
+          { error: "A valid trial duration (1, 3, or 7 days) is required." },
+          { status: 400 },
+        );
+      }
+      trialDurationDays = parsed;
+    }
+
     try {
       // No orderId: nothing was paid for through checkout, and pretending
       // otherwise would put a phantom order in the reconciliation trail.
-      const entitlement = await grantPro({ email, plan: body.plan });
+      const entitlement = await grantPro({
+        email,
+        plan: isTrial ? "trial" : (body.plan as "annual" | "monthly"),
+        durationDays: trialDurationDays,
+      });
 
       console.log(
         `[admin] Granted ${body.plan} Pro to ${email} until ${entitlement.expiresAt}`,

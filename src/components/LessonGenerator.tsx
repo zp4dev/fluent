@@ -64,6 +64,8 @@ export default function LessonGenerator() {
   const {
     licenseKey,
     isPro,
+    plan: proPlan,
+    daysLeft: proDaysLeft,
     hydrated: licenseHydrated,
     refresh: refreshSession,
   } = useProStatus();
@@ -274,7 +276,9 @@ export default function LessonGenerator() {
           isPro ? (
             <p className="mt-2 flex items-center gap-1 text-center text-xs font-bold text-primary sm:text-left">
               <span className="inline-flex items-center gap-1 rounded-full border-2 border-primary bg-highlight px-3 py-1">
-                {t.generator.proBadge}
+                {proPlan === "trial" && proDaysLeft !== null
+                  ? fmt(t.generator.trialBadge, { days: proDaysLeft })
+                  : t.generator.proBadge}
               </span>
             </p>
           ) : (
@@ -400,6 +404,7 @@ export default function LessonGenerator() {
             lesson={displayedResult.lesson}
             videoId={displayedResult.videoId}
             isPro={isPro}
+            licenseKey={licenseKey}
           />
         </div>
       ) : null}

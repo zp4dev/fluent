@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import type { EntitlementPlan } from "@/lib/entitlements";
+
 /**
  * The signed-in address and its Pro status, straight from the server.
  *
@@ -13,11 +15,21 @@ import { useCallback, useEffect, useState } from "react";
 export interface SessionState {
   email: string | null;
   isPro: boolean;
+  /** Set only while `isPro` — e.g. "trial" so the UI can show days left. */
+  plan: EntitlementPlan | null;
+  /** Whole days left on the current plan, or null when not Pro. */
+  daysLeft: number | null;
   /** False until the first lookup lands, so the UI can avoid flashing. */
   loaded: boolean;
 }
 
-const SIGNED_OUT: SessionState = { email: null, isPro: false, loaded: true };
+const SIGNED_OUT: SessionState = {
+  email: null,
+  isPro: false,
+  plan: null,
+  daysLeft: null,
+  loaded: true,
+};
 
 /** A network blip just reads as signed out; a later refresh can recover. */
 async function fetchSession(): Promise<SessionState> {
@@ -26,11 +38,15 @@ async function fetchSession(): Promise<SessionState> {
     const data = (await response.json()) as {
       email?: string | null;
       isPro?: boolean;
+      plan?: EntitlementPlan | null;
+      daysLeft?: number | null;
     };
 
     return {
       email: data.email ?? null,
       isPro: Boolean(data.isPro),
+      plan: data.plan ?? null,
+      daysLeft: data.daysLeft ?? null,
       loaded: true,
     };
   } catch {
@@ -42,6 +58,8 @@ export function useSession() {
   const [state, setState] = useState<SessionState>({
     email: null,
     isPro: false,
+    plan: null,
+    daysLeft: null,
     loaded: false,
   });
 

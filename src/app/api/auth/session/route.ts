@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { readSession, refreshSessionIfStale } from "@/lib/authSession";
-import { isProByEmail } from "@/lib/entitlements";
+import { getProSummary } from "@/lib/entitlements";
 
 /**
  * Who this browser is, and whether they have Pro.
@@ -14,18 +14,30 @@ export async function GET() {
     const session = await readSession();
 
     if (!session) {
-      return NextResponse.json({ email: null, isPro: false });
+      return NextResponse.json({
+        email: null,
+        isPro: false,
+        plan: null,
+        daysLeft: null,
+      });
     }
 
     // Someone who keeps using the app should never be logged out.
     await refreshSessionIfStale();
 
+    const summary = await getProSummary(session.email);
+
     return NextResponse.json({
       email: session.email,
-      isPro: await isProByEmail(session.email),
+      isPro: summary !== null,
+      plan: summary?.plan ?? null,
+      daysLeft: summary?.daysLeft ?? null,
     });
   } catch (error) {
     console.error("[auth] session lookup failed:", error);
-    return NextResponse.json({ email: null, isPro: false }, { status: 500 });
+    return NextResponse.json(
+      { email: null, isPro: false, plan: null, daysLeft: null },
+      { status: 500 },
+    );
   }
 }

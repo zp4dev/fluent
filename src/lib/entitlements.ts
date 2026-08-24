@@ -16,9 +16,16 @@ import { isValidEmail, normalizeEmail } from "@/lib/validateEmail";
 const PRO_PREFIX = "fluent-pro:";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * `"trial"` is an admin-granted free trial (1/3/7 days, see
+ * `TrialDurationDays` in lib/plans.ts) — it has no price and is never a
+ * checkout option, so it lives outside `PlanId` rather than inside `PLANS`.
+ */
+export type EntitlementPlan = PlanId | "trial";
+
 export interface ProEntitlement {
   email: string;
-  plan: PlanId;
+  plan: EntitlementPlan;
   orderId?: string;
   activatedAt: string;
   expiresAt: string;
@@ -67,6 +74,32 @@ export async function isProByEmail(
   return isEntitlementActive(await getEntitlement(email));
 }
 
+export interface ProSummary {
+  plan: EntitlementPlan;
+  /** Whole days left, floored at 1 while still active. */
+  daysLeft: number;
+}
+
+/**
+ * What the client needs to show Pro state — used by the session endpoint so
+ * a trial can render "N days left" instead of a plain Pro badge.
+ */
+export async function getProSummary(
+  email: string | undefined | null,
+): Promise<ProSummary | null> {
+  const entitlement = await getEntitlement(email);
+  if (!entitlement || !isEntitlementActive(entitlement)) {
+    return null;
+  }
+
+  const daysLeft = Math.max(
+    1,
+    Math.ceil((Date.parse(entitlement.expiresAt) - Date.now()) / DAY_MS),
+  );
+
+  return { plan: entitlement.plan, daysLeft };
+}
+
 /**
  * Grant or extend Pro for an email.
  *
@@ -79,13 +112,19 @@ export async function isProByEmail(
  */
 export async function grantPro(input: {
   email: string;
-  plan: PlanId;
+  plan: EntitlementPlan;
   orderId?: string;
-  /** Defaults to the plan's own duration. */
+  /** Defaults to the plan's own duration. Required when `plan` is "trial". */
   durationDays?: number;
 }): Promise<ProEntitlement> {
   const email = normalizeEmail(input.email);
-  const durationDays = input.durationDays ?? PLANS[input.plan].durationDays;
+  const durationDays =
+    input.durationDays ??
+    (input.plan === "trial" ? undefined : PLANS[input.plan].durationDays);
+
+  if (durationDays === undefined) {
+    throw new Error("durationDays is required to grant a trial.");
+  }
 
   const now = new Date();
   const existing = await getEntitlement(email);

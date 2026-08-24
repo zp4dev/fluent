@@ -26,12 +26,14 @@ interface LessonDisplayProps {
   lesson: Lesson;
   videoId: string;
   isPro?: boolean;
+  licenseKey?: string | null;
 }
 
 export default function LessonDisplay({
   lesson,
   videoId,
   isPro = false,
+  licenseKey,
 }: LessonDisplayProps) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<LessonTab>("vocabulary");
@@ -235,6 +237,7 @@ export default function LessonDisplay({
                 lesson={lesson}
                 videoId={videoId}
                 isPro={isPro}
+                licenseKey={licenseKey}
               />
             </div>
           </div>
