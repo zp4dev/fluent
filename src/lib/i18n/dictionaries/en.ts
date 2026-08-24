@@ -260,6 +260,10 @@ const en: Dictionary = {
     emailHint: "We'll send a 6-digit code to this address to confirm it's you.",
     signOut: "Sign out",
     signOutFrom: "Sign out ({email})",
+    signIn: "Sign in",
+    signInTitle: "Sign in to Fluent",
+    signInBody:
+      "Enter your email and we'll send you a 6-digit code. No password needed.",
     sendCode: "Send verification code",
     sending: "Sending...",
     verify: "Verify",

@@ -263,6 +263,10 @@ const es: Dictionary = {
       "Te enviaremos un código de 6 dígitos a esta dirección para confirmar que eres tú.",
     signOut: "Cerrar sesión",
     signOutFrom: "Cerrar sesión ({email})",
+    signIn: "Iniciar sesión",
+    signInTitle: "Inicia sesión en Fluent",
+    signInBody:
+      "Escribe tu correo y te enviaremos un código de 6 dígitos. Sin contraseña.",
     sendCode: "Enviar código de verificación",
     sending: "Enviando...",
     verify: "Verificar",

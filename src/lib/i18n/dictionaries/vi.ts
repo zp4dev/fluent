@@ -267,6 +267,10 @@ const vi = {
     emailHint: "Mình gửi một mã 6 số tới email này để xác nhận đúng là bạn.",
     signOut: "Đăng xuất",
     signOutFrom: "Đăng xuất ({email})",
+    signIn: "Đăng nhập",
+    signInTitle: "Đăng nhập vào Fluent",
+    signInBody:
+      "Bạn nhập email, mình gửi mã 6 số để đăng nhập. Không cần mật khẩu.",
     sendCode: "Gửi mã xác thực",
     sending: "Đang gửi...",
     verify: "Xác thực",
