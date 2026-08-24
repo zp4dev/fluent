@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import EmailVerification from "@/components/EmailVerification";
+import LessonBackup from "@/components/LessonBackup";
 import LessonDisplay from "@/components/LessonDisplay";
 import SavedLessons from "@/components/SavedLessons";
 import { CHECKOUT_URL } from "@/lib/checkout";
+import { useI18n } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n/format";
 import { isMaintenanceMode } from "@/lib/maintenance";
 import { PRO_DAILY_LIMIT_CODE } from "@/lib/proDailyLimitShared";
 import { SAMPLE_LESSON } from "@/lib/sampleLesson";
@@ -19,25 +24,35 @@ import {
 import { animatedScrollToElement } from "@/lib/smoothScroll";
 import { DAILY_LIMIT, useDailyLimit } from "@/lib/useDailyLimit";
 import { useProStatus } from "@/lib/useProStatus";
-import { isValidEmail } from "@/lib/validateEmail";
 import { extractVideoId } from "@/lib/videoId";
 import type { GenerateLessonResponse } from "@/types/lesson";
 
-type RestoreStatus = "idle" | "checking" | "error";
+/**
+ * `?dev=true` loads sample data instead of calling Claude. Read through
+ * useSyncExternalStore rather than an effect: the server can't see the query
+ * string, so it must render as off and flip on straight after hydration.
+ */
+const neverChanges = () => () => {};
+const readDevFlag = () =>
+  new URLSearchParams(window.location.search).get("dev") === "true";
+const devFlagOnServer = () => false;
 
 export default function LessonGenerator() {
+  const { t, locale } = useI18n();
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateLessonResponse | null>(null);
-  const [devMode, setDevMode] = useState(false);
+  const devMode = useSyncExternalStore(
+    neverChanges,
+    readDevFlag,
+    devFlagOnServer,
+  );
   /** Set when the server returns the quiet Pro fair-use daily cap. */
   const [proDailyBlocked, setProDailyBlocked] = useState(false);
 
   const [showRestore, setShowRestore] = useState(false);
-  const [restoreInput, setRestoreInput] = useState("");
-  const [restoreStatus, setRestoreStatus] = useState<RestoreStatus>("idle");
-  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   const [savedIndex, setSavedIndex] = useState<SavedLessonMeta[]>([]);
   const [scrollToResult, setScrollToResult] = useState(false);
@@ -48,11 +63,14 @@ export default function LessonGenerator() {
   // License-key redemption UI is gone; backend validation stays for grandfathered keys.
   const {
     licenseKey,
-    email: buyerEmail,
     isPro,
     hydrated: licenseHydrated,
-    restore: restorePro,
+    refresh: refreshSession,
   } = useProStatus();
+
+  // In dev mode the sample lesson stands in until a real one is loaded, so the
+  // page has something to render without seeding state from an effect.
+  const displayedResult = result ?? (devMode ? SAMPLE_LESSON : null);
 
   const maintenance = isMaintenanceMode();
   const blockedByFreeLimit = !devMode && !isPro && limitReached;
@@ -60,16 +78,16 @@ export default function LessonGenerator() {
   const blockedByLimit = blockedByFreeLimit || blockedByProDaily;
   const inputDisabled = maintenance || blockedByLimit;
 
+  // Load the saved-lessons index after hydration. SavedLessons renders `items`
+  // ungated, so this list MUST be empty in the server markup and fill in
+  // afterwards — seeding it from storage during render would be a hydration
+  // mismatch. The deferred setState is the point here, not an oversight.
+  // Re-runs on locale change too: the list is scoped to the language being
+  // read, since a lesson's translations are generated in that language.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("dev") === "true") {
-      setDevMode(true);
-      setResult(SAMPLE_LESSON);
-    }
-
-    // Load the saved-lessons index (localStorage is browser-only).
-    setSavedIndex(getSavedIndex());
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSavedIndex(getSavedIndex(locale));
+  }, [locale]);
 
   // Smooth-scroll to the lesson once it has rendered after a saved selection.
   // Uses a slower custom animation (ease-out, ~700ms) that respects
@@ -82,10 +100,10 @@ export default function LessonGenerator() {
   }, [scrollToResult, result]);
 
   function handleSelectSaved(videoId: string) {
-    const saved = getSavedLesson(videoId);
+    const saved = getSavedLesson(videoId, locale);
     if (!saved) {
       // Entry is missing/corrupt — drop it from the index.
-      setSavedIndex(deleteSavedLesson(videoId));
+      setSavedIndex(deleteSavedLesson(videoId, locale));
       return;
     }
     setError(null);
@@ -95,7 +113,7 @@ export default function LessonGenerator() {
   }
 
   function handleDeleteSaved(videoId: string) {
-    setSavedIndex(deleteSavedLesson(videoId));
+    setSavedIndex(deleteSavedLesson(videoId, locale));
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -116,7 +134,7 @@ export default function LessonGenerator() {
     // re-paying Supadata + Claude for a repeat video.
     const videoId = extractVideoId(url);
     if (videoId) {
-      const cached = getSavedLesson(videoId);
+      const cached = getSavedLesson(videoId, locale);
       if (cached) {
         setError(null);
         setResult(cached);
@@ -136,11 +154,12 @@ export default function LessonGenerator() {
       const response = await fetch("/api/generate-lesson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Send the license key so the server can unlock Pro vocabulary depth.
+        // Only the license key travels in the body. The buyer's identity comes
+        // from the session cookie the browser sends automatically — passing an
+        // email here would be ignored, and claiming one used to be the bug.
         body: JSON.stringify({
           url,
           licenseKey: licenseKey ?? undefined,
-          email: buyerEmail || undefined,
         }),
       });
 
@@ -155,64 +174,36 @@ export default function LessonGenerator() {
           setProDailyBlocked(true);
           return;
         }
-        throw new Error(
-          data.error ??
-            "Bạn đã tạo quá nhiều bài học trong một giờ qua. Vui lòng thử lại sau ít phút nhé! ⏳",
-        );
+        throw new Error(data.error ?? t.api.rateLimitedShort);
       }
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Không thể tạo bài học.");
+        throw new Error(data.error ?? t.api.generateFailedShort);
       }
 
       setResult(data);
-      // Persist the freshly generated lesson (and refresh the list).
-      setSavedIndex(saveLesson(data));
-      if (!isPro) {
+      // Persist the freshly generated lesson (and refresh the list). Rebuilt
+      // field by field rather than spread: `cached` describes how THIS response
+      // was served and `error`/`code` are transport concerns — none of them
+      // belong in storage.
+      setSavedIndex(
+        saveLesson({ lesson: data.lesson, videoId: data.videoId }, locale),
+      );
+
+      // A cached lesson cost nothing to serve, so it does not spend one of the
+      // three free lessons a day. The server applies the same rule to the Pro
+      // fair-use cap.
+      if (!isPro && !data.cached) {
         increment();
       }
     } catch (submitError) {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Không thể tạo bài học.",
+          : t.api.generateFailedShort,
       );
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleRestoreSubmit() {
-    const candidate = restoreInput.trim();
-
-    if (!isValidEmail(candidate)) {
-      setRestoreStatus("error");
-      setRestoreError("Email chưa hợp lệ. Bạn kiểm tra lại giúp mình nhé.");
-      return;
-    }
-
-    setRestoreStatus("checking");
-    setRestoreError(null);
-
-    try {
-      const restored = await restorePro(candidate);
-
-      if (!restored) {
-        setRestoreStatus("error");
-        setRestoreError(
-          "Không tìm thấy Pro cho email này. Kiểm tra lại email bạn đã dùng khi thanh toán nhé.",
-        );
-        return;
-      }
-
-      // Pro just flipped on, so this whole block unmounts — the badge above is
-      // the confirmation.
-      setRestoreInput("");
-      setShowRestore(false);
-      setRestoreStatus("idle");
-    } catch {
-      setRestoreStatus("error");
-      setRestoreError("Chưa kiểm tra được lúc này. Bạn thử lại sau ít phút nhé.");
     }
   }
 
@@ -230,11 +221,11 @@ export default function LessonGenerator() {
           Fluent
         </h1>
         <p className="mx-auto max-w-xl text-base leading-7 text-body">
-          Biến mọi video YouTube thành bài học tiếng Anh
+          {t.generator.tagline}
         </p>
         {devMode ? (
           <span className="mx-auto flex w-fit items-center gap-1 rounded-full border-2 border-primary bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-sm">
-            🛠️ Dev mode — dữ liệu mẫu
+            {t.generator.devBadge}
           </span>
         ) : null}
       </header>
@@ -247,7 +238,7 @@ export default function LessonGenerator() {
           htmlFor="youtube-url"
           className="block text-sm font-extrabold uppercase tracking-wide text-body"
         >
-          Liên kết YouTube
+          {t.generator.urlLabel}
         </label>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <input
@@ -256,7 +247,7 @@ export default function LessonGenerator() {
             required={!devMode}
             value={url}
             onChange={(event) => setUrl(event.target.value)}
-            placeholder="Dán link YouTube vào đây..."
+            placeholder={t.generator.urlPlaceholder}
             disabled={inputDisabled}
             className="min-w-0 flex-1 rounded-2xl border-2 border-border bg-background px-4 py-4 text-base font-semibold text-heading outline-none placeholder:text-muted transition ease-smooth focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
           />
@@ -268,29 +259,30 @@ export default function LessonGenerator() {
             className="btn-3d cursor-pointer rounded-2xl bg-primary px-10 py-5 text-base font-extrabold uppercase tracking-wide text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {maintenance
-              ? "Tạm dừng"
+              ? t.generator.submitPaused
               : loading
-                ? "Đang tạo bài học..."
-                : "Bắt đầu"}
+                ? t.generator.submitting
+                : t.generator.submit}
           </button>
         </div>
 
         <p className="mt-4 text-center text-sm text-body sm:text-left">
-          {maintenance
-            ? "Tính năng tạo bài học đang tạm dừng để nâng cấp. Quay lại sau ít phút nhé!"
-            : "Hoạt động tốt nhất với video có phụ đề tiếng Anh."}
+          {maintenance ? t.generator.hintPaused : t.generator.hint}
         </p>
 
         {hydrated && licenseHydrated ? (
           isPro ? (
             <p className="mt-2 flex items-center gap-1 text-center text-xs font-bold text-primary sm:text-left">
               <span className="inline-flex items-center gap-1 rounded-full border-2 border-primary bg-highlight px-3 py-1">
-                ☕ Pro
+                {t.generator.proBadge}
               </span>
             </p>
           ) : (
             <p className="mt-2 text-center text-xs font-bold text-primary sm:text-left">
-              Còn lại: {remaining}/{DAILY_LIMIT} lượt hôm nay
+              {fmt(t.generator.remaining, {
+                remaining,
+                limit: DAILY_LIMIT,
+              })}
             </p>
           )
         ) : null}
@@ -298,62 +290,27 @@ export default function LessonGenerator() {
         {!isPro ? (
           <div className="mt-4 border-t border-border pt-4">
             {showRestore ? (
-              <div className="space-y-2">
-                <label
-                  htmlFor="restore-email"
-                  className="block text-xs font-bold text-body"
-                >
-                  Nhập email bạn đã dùng khi thanh toán
-                </label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    id="restore-email"
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    value={restoreInput}
-                    onChange={(event) => {
-                      setRestoreInput(event.target.value);
-                      if (restoreStatus === "error") {
-                        setRestoreStatus("idle");
-                        setRestoreError(null);
-                      }
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        void handleRestoreSubmit();
-                      }
-                    }}
-                    placeholder="ban@email.com"
-                    className="min-w-0 flex-1 rounded-xl border-2 border-border bg-background px-4 py-3 text-sm font-semibold text-heading outline-none placeholder:text-muted transition ease-smooth focus:border-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleRestoreSubmit()}
-                    disabled={
-                      restoreStatus === "checking" || !restoreInput.trim()
-                    }
-                    className="cursor-pointer rounded-xl bg-primary px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_3px_0_#CA2851] transition ease-smooth hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-                  >
-                    {restoreStatus === "checking"
-                      ? "Đang kiểm tra..."
-                      : "Khôi phục"}
-                  </button>
-                </div>
-                {restoreError ? (
-                  <p className="text-xs font-bold text-wrong">{restoreError}</p>
-                ) : null}
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-body">
+                  {t.generator.restoreIntro}
+                </p>
+                <EmailVerification
+                  submitLabel={t.generator.restoreSubmit}
+                  onVerified={async () => {
+                    await refreshSession();
+                    setShowRestore(false);
+                    // The header's logout button is rendered server-side from
+                    // the session cookie, so it only appears once the server
+                    // re-renders.
+                    router.refresh();
+                  }}
+                />
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowRestore(false);
-                    setRestoreStatus("idle");
-                    setRestoreError(null);
-                  }}
+                  onClick={() => setShowRestore(false)}
                   className="cursor-pointer text-xs font-bold text-muted underline-offset-2 transition ease-smooth hover:text-body hover:underline"
                 >
-                  Quay lại
+                  {t.common.back}
                 </button>
               </div>
             ) : (
@@ -362,14 +319,14 @@ export default function LessonGenerator() {
                   href={CHECKOUT_URL}
                   className="text-xs font-bold text-primary underline-offset-2 transition ease-smooth hover:underline"
                 >
-                  ☕ Ủng hộ Fluent
+                  {t.generator.buyPro}
                 </Link>
                 <button
                   type="button"
                   onClick={() => setShowRestore(true)}
                   className="cursor-pointer text-xs font-bold text-primary underline-offset-2 transition ease-smooth hover:underline"
                 >
-                  Đã mua Pro? Khôi phục tại đây
+                  {t.generator.alreadyBought}
                 </button>
               </div>
             )}
@@ -383,11 +340,18 @@ export default function LessonGenerator() {
         onDelete={handleDeleteSaved}
       />
 
+      {/* Outside SavedLessons on purpose: that list hides itself when nothing
+          is saved, which is exactly the moment someone needs to IMPORT. */}
+      <LessonBackup
+        isPro={isPro}
+        hydrated={licenseHydrated}
+        onImported={setSavedIndex}
+      />
+
       {blockedByProDaily ? (
         <div className="rounded-2xl border-2 border-border bg-highlight px-6 py-6 text-center">
           <p className="text-base font-bold leading-7 text-heading">
-            Hôm nay bạn đã tạo đủ bài học rồi. Ngày mai quay lại tiếp nhé — mình
-            sẽ sẵn sàng! ☕
+            {t.generator.proDailyReached}
           </p>
         </div>
       ) : null}
@@ -395,15 +359,13 @@ export default function LessonGenerator() {
       {blockedByFreeLimit ? (
         <div className="rounded-2xl border-2 border-border bg-highlight px-6 py-6 text-center">
           <p className="text-base font-bold leading-7 text-heading">
-            Fluent hoàn toàn miễn phí! Nếu bạn thấy hữu ích và muốn ủng hộ mình,
-            bạn có thể mua cho mình một ly cà phê để mình tiếp tục phát triển
-            Fluent ☕
+            {fmt(t.generator.freeLimitReached, { limit: DAILY_LIMIT })}
           </p>
           <Link
             href={CHECKOUT_URL}
             className="btn-3d mt-5 inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-extrabold uppercase tracking-wide text-white hover:bg-primary-hover"
           >
-            Nâng cấp Pro ☕
+            {t.generator.upgradeCta}
           </Link>
         </div>
       ) : null}
@@ -423,22 +385,20 @@ export default function LessonGenerator() {
             <span className="animate-hourglass">⏳</span>
           </p>
           <p className="mt-4 text-lg font-extrabold text-heading">
-            Đang tạo bài học...
+            {t.generator.loadingTitle}
           </p>
-          <p className="mt-2 text-sm text-body">
-            Thường mất khoảng 20–40 giây.
-          </p>
+          <p className="mt-2 text-sm text-body">{t.generator.loadingHint}</p>
         </div>
       ) : null}
 
-      {result ? (
+      {displayedResult ? (
         <div
           ref={resultRef}
           className="scroll-mt-4 rounded-3xl border-2 border-border bg-card p-6 shadow-sm sm:p-8"
         >
           <LessonDisplay
-            lesson={result.lesson}
-            videoId={result.videoId}
+            lesson={displayedResult.lesson}
+            videoId={displayedResult.videoId}
             isPro={isPro}
           />
         </div>

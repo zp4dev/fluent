@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { CHECKOUT_URL } from "@/lib/checkout";
+import { useI18n } from "@/lib/i18n/context";
 import type { Lesson } from "@/types/lesson";
 
 interface DownloadPdfButtonProps {
@@ -13,7 +14,7 @@ interface DownloadPdfButtonProps {
 }
 
 function DownloadIcon() {
-  // Matches the 14x14 play icon on "Xem video gốc" — arrow into a tray.
+  // Matches the 14x14 play icon on the "watch original" link — arrow into a tray.
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -30,6 +31,7 @@ function DownloadIcon() {
 export default function DownloadPdfButton({
   isPro,
 }: DownloadPdfButtonProps) {
+  const { t } = useI18n();
   const [showUpsell, setShowUpsell] = useState(false);
   const [showComingSoon, setShowComingSoon] = useState(false);
 
@@ -54,7 +56,7 @@ export default function DownloadPdfButton({
         className="inline-flex cursor-pointer items-center gap-2 rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold text-primary shadow-sm transition ease-smooth hover:border-primary hover:bg-highlight"
       >
         <DownloadIcon />
-        Tải PDF
+        {t.pdf.download}
       </button>
 
       {showComingSoon ? (
@@ -74,18 +76,17 @@ export default function DownloadPdfButton({
               id="pdf-coming-soon-title"
               className="mt-4 text-2xl font-extrabold text-heading"
             >
-              Sắp có rồi!
+              {t.pdf.comingSoonTitle}
             </h2>
             <p className="mt-3 text-base leading-7 text-body">
-              Tính năng tải PDF đang được hoàn thiện. Cảm ơn bạn đã chờ — mình
-              sẽ sớm mang đến nhé!
+              {t.pdf.comingSoonBody}
             </p>
             <button
               type="button"
               onClick={() => setShowComingSoon(false)}
               className="btn-3d mt-6 inline-flex cursor-pointer items-center justify-center rounded-2xl bg-primary px-8 py-4 text-base font-extrabold uppercase tracking-wide text-white hover:bg-primary-hover"
             >
-              Đã hiểu
+              {t.common.gotIt}
             </button>
           </div>
         </div>
@@ -108,24 +109,23 @@ export default function DownloadPdfButton({
               id="pdf-upsell-title"
               className="mt-4 text-2xl font-extrabold text-heading"
             >
-              Tải PDF là tính năng Pro
+              {t.pdf.upsellTitle}
             </h2>
             <p className="mt-3 text-base leading-7 text-body">
-              Nâng cấp Pro để tải bài học dưới dạng PDF đẹp mắt — dùng để in,
-              ôn tập và luyện viết ngay trên giấy.
+              {t.pdf.upsellBody}
             </p>
             <Link
               href={CHECKOUT_URL}
               className="btn-3d mt-6 inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-extrabold uppercase tracking-wide text-white hover:bg-primary-hover"
             >
-              Nâng cấp Pro ☕
+              {t.pdf.upsellCta}
             </Link>
             <button
               type="button"
               onClick={() => setShowUpsell(false)}
               className="mt-4 block w-full cursor-pointer text-sm font-bold text-muted transition ease-smooth hover:text-body"
             >
-              Để sau
+              {t.common.later}
             </button>
           </div>
         </div>

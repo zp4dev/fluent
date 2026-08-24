@@ -1,4 +1,8 @@
+"use client";
+
 import SpeakButton from "@/components/SpeakButton";
+import { useI18n } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n/format";
 import type { ExampleSentence } from "@/types/lesson";
 
 interface GrammarSectionProps {
@@ -21,10 +25,12 @@ function highlightPhrase(sentence: string, keyPhrase: string) {
 }
 
 export default function GrammarSection({ items }: GrammarSectionProps) {
+  const { t } = useI18n();
+
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-body">
-        Học cách dùng các cụm từ quan trọng trong câu thực tế.
+        {t.grammar.intro}
       </p>
       {items.map((item, index) => (
         <article
@@ -33,7 +39,7 @@ export default function GrammarSection({ items }: GrammarSectionProps) {
         >
           <div className="flex items-center justify-between gap-2">
             <span className="inline-flex rounded-full bg-highlight px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-              Câu {index + 1}
+              {fmt(t.grammar.sentenceLabel, { index: index + 1 })}
             </span>
             <SpeakButton text={item.sentence} size={18} />
           </div>

@@ -1,10 +1,16 @@
 import { YoutubeTranscript } from "youtube-transcript";
 
-export async function fetchDirectTranscript(videoId: string): Promise<string> {
+import { UserFacingError } from "@/lib/errors";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+
+export async function fetchDirectTranscript(
+  videoId: string,
+  t: Dictionary,
+): Promise<string> {
   const segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: "en" });
 
   if (!segments.length) {
-    throw new Error("Video này không có phụ đề tiếng Anh.");
+    throw new UserFacingError(t.api.noSubtitles);
   }
 
   const text = segments
@@ -13,7 +19,7 @@ export async function fetchDirectTranscript(videoId: string): Promise<string> {
     .join(" ");
 
   if (!text) {
-    throw new Error("Phụ đề của video này trống.");
+    throw new UserFacingError(t.api.emptySubtitles);
   }
 
   return text;

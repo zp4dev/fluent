@@ -15,6 +15,7 @@ import { normalizeEmail } from "@/lib/validateEmail";
 
 const ORDER_PREFIX = "fluent-order:";
 const PENDING_LIST = "fluent-orders:pending";
+const PENDING_BY_EMAIL_PREFIX = "fluent-order-pending:";
 const MAX_LISTED = 100;
 
 export type OrderStatus = "pending" | "paid";
@@ -36,6 +37,15 @@ export interface Order {
 }
 
 const orderKey = (id: string) => `${ORDER_PREFIX}${id}`;
+
+/**
+ * Points at a buyer's newest unreconciled order.
+ *
+ * Kept separate from PENDING_LIST because that list is capped at MAX_LISTED
+ * for reconciliation — a real order must never fall outside the lookup just
+ * because the queue got long.
+ */
+const pendingKey = (email: string) => `${PENDING_BY_EMAIL_PREFIX}${email}`;
 
 export async function createPendingOrder(input: {
   email: string;
@@ -69,6 +79,7 @@ export async function createPendingOrder(input: {
   try {
     await redis.set(orderKey(order.id), order);
     await redis.lpush(PENDING_LIST, order.id);
+    await redis.set(pendingKey(email), order.id);
   } catch (error) {
     // Don't fail the request — the buyer may have already sent money. Log the
     // full record so it can still be reconciled from the logs.
@@ -109,7 +120,9 @@ export async function listPendingOrders(): Promise<Order[]> {
       return [];
     }
 
-    const orders = await Promise.all(ids.map((id) => getOrder(id)));
+    // One MGET rather than one GET per id — this runs on every admin
+    // reconciliation and the list can hold up to MAX_LISTED entries.
+    const orders = await redis.mget<(Order | null)[]>(ids.map(orderKey));
     return orders.filter((order): order is Order => order !== null);
   } catch (error) {
     console.error("[orders] Failed to list pending orders:", error);
@@ -121,22 +134,41 @@ export async function listPendingOrders(): Promise<Order[]> {
  * The newest still-pending order for an email — what a confirmed bank transfer
  * gets matched against.
  *
- * Scans the pending list rather than keeping a per-email index: the list only
- * holds unreconciled orders (ids are removed on activation), so it stays small.
+ * A single GET through the per-email pointer. This used to scan PENDING_LIST,
+ * which silently missed real orders once the queue passed MAX_LISTED entries.
  */
 export async function findLatestPendingOrderByEmail(
   email: string,
 ): Promise<Order | null> {
   const target = normalizeEmail(email);
-  const pending = await listPendingOrders();
 
-  const matches = pending
-    .filter((order) => order.status === "pending" && order.email === target)
-    .sort(
-      (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
-    );
+  const redis = getRedis();
+  if (!redis) {
+    return null;
+  }
 
-  return matches[0] ?? null;
+  let id: string | null;
+
+  try {
+    id = await redis.get<string>(pendingKey(target));
+  } catch (error) {
+    console.error("[orders] Failed to read pending pointer:", target, error);
+    return null;
+  }
+
+  if (!id) {
+    return null;
+  }
+
+  const order = await getOrder(id);
+
+  // The pointer can outlive what it points at, so re-check the order itself
+  // rather than trusting it.
+  if (!order || order.status !== "pending" || order.email !== target) {
+    return null;
+  }
+
+  return order;
 }
 
 /**
@@ -167,6 +199,8 @@ export async function markOrderPaid(
   try {
     await redis.set(orderKey(id), updated);
     await redis.lrem(PENDING_LIST, 0, id);
+    // Clears the lookup so the same transfer can't be activated twice.
+    await redis.del(pendingKey(order.email));
   } catch (error) {
     console.error("[orders] Failed to mark order paid:", id, error);
     return null;

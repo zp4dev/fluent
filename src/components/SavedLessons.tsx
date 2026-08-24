@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 
+import { LOCALE_INFO, type Locale } from "@/lib/i18n/config";
+import { useI18n } from "@/lib/i18n/context";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { fmt } from "@/lib/i18n/format";
 import type { SavedLessonMeta } from "@/lib/savedLessons";
 
 interface SavedLessonsProps {
@@ -10,7 +14,11 @@ interface SavedLessonsProps {
   onDelete: (videoId: string) => void;
 }
 
-function relativeDate(savedAt: number): string {
+function relativeDate(
+  savedAt: number,
+  t: Dictionary,
+  locale: Locale,
+): string {
   const now = new Date();
   const then = new Date(savedAt);
 
@@ -29,18 +37,22 @@ function relativeDate(savedAt: number): string {
   const diffDays = Math.round((startOfToday - startOfThen) / dayMs);
 
   if (diffDays <= 0) {
-    return "Hôm nay";
+    return t.saved.today;
   }
   if (diffDays === 1) {
-    return "Hôm qua";
+    return t.saved.yesterday;
   }
   if (diffDays < 7) {
-    return `${diffDays} ngày trước`;
+    return fmt(t.saved.daysAgo, { count: diffDays });
   }
 
-  const day = `${then.getDate()}`.padStart(2, "0");
-  const month = `${then.getMonth() + 1}`.padStart(2, "0");
-  return `${day}/${month}/${then.getFullYear()}`;
+  // Past a week, show an absolute date in the reader's own conventions —
+  // 22/08/2026 in Vietnamese, 08/22/2026 in English, 2026/08/22 in Chinese.
+  return new Intl.DateTimeFormat(LOCALE_INFO[locale].htmlLang, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(then);
 }
 
 export default function SavedLessons({
@@ -48,6 +60,7 @@ export default function SavedLessons({
   onSelect,
   onDelete,
 }: SavedLessonsProps) {
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -65,7 +78,7 @@ export default function SavedLessons({
         className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-3xl px-6 py-4 text-left"
       >
         <span className="text-sm font-extrabold uppercase tracking-wide text-body transition-colors ease-smooth group-hover:text-black">
-          Bài học đã lưu ({items.length})
+          {fmt(t.saved.title, { count: items.length })}
         </span>
         <svg
           width="18"
@@ -118,15 +131,16 @@ export default function SavedLessons({
                   {item.title}
                 </p>
                 <p className="mt-0.5 text-xs font-semibold text-muted">
-                  {relativeDate(item.savedAt)} · {item.vocabCount} từ vựng
+                  {relativeDate(item.savedAt, t, locale)} ·{" "}
+                  {fmt(t.saved.vocabCount, { count: item.vocabCount })}
                 </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => onDelete(item.videoId)}
-                aria-label={`Xoá bài học: ${item.title}`}
-                title="Xoá bài học"
+                aria-label={fmt(t.saved.deleteAria, { title: item.title })}
+                title={t.saved.deleteTitle}
                 className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full p-2 text-muted transition ease-smooth hover:bg-wrong-light hover:text-wrong"
               >
                 <svg

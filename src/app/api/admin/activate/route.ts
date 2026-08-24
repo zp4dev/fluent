@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { acquireActivationLock } from "@/lib/activationLock";
 import { isAuthorizedAdmin } from "@/lib/adminAuth";
 import { getEntitlement, grantPro, isEntitlementActive } from "@/lib/entitlements";
 import { findLatestPendingOrderByEmail, markOrderPaid } from "@/lib/orders";
@@ -25,20 +26,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (!isAuthorizedAdmin(request, body.secret)) {
+  if (!(await isAuthorizedAdmin(request, body.secret))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const email = body.email ? normalizeEmail(body.email) : "";
+
+  if (!email || !isValidEmail(email)) {
+    return NextResponse.json(
+      { error: "A valid email is required." },
+      { status: 400 },
+    );
+  }
+
+  // Granting is read-then-write, so two overlapping calls would stack a second
+  // Pro period onto the same transfer.
+  const lock = await acquireActivationLock(email);
+
+  if (!lock) {
+    return NextResponse.json(
+      { error: `An activation for ${email} is already in progress.` },
+      { status: 409 },
+    );
+  }
+
   try {
-    const email = body.email ? normalizeEmail(body.email) : "";
-
-    if (!email || !isValidEmail(email)) {
-      return NextResponse.json(
-        { error: "A valid email is required." },
-        { status: 400 },
-      );
-    }
-
     const order = await findLatestPendingOrderByEmail(email);
 
     if (!order) {
@@ -113,5 +125,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[admin] Activation failed:", error);
     return NextResponse.json({ error: "Activation failed." }, { status: 500 });
+  } finally {
+    await lock.release();
   }
 }

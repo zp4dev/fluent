@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import EmailVerification from "@/components/EmailVerification";
 import { BANK_DETAILS } from "@/lib/bank";
+import { useI18n } from "@/lib/i18n/context";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { fmt, rich } from "@/lib/i18n/format";
 import {
   DEFAULT_PLAN_ID,
   PLANS,
@@ -12,8 +17,11 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { useBuyerEmail } from "@/lib/useBuyerEmail";
+import { useSession } from "@/lib/useSession";
+import { buildVietQrUrl } from "@/lib/vietqr";
 
 function CopyButton({ value, label }: { value: string; label: string }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -33,7 +41,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       aria-label={label}
       className="shrink-0 cursor-pointer rounded-lg border-2 border-border bg-card px-2.5 py-1 text-xs font-extrabold text-primary transition ease-smooth hover:border-primary hover:bg-highlight"
     >
-      {copied ? "Đã chép!" : "Chép"}
+      {copied ? t.common.copied : t.common.copy}
     </button>
   );
 }
@@ -46,6 +54,7 @@ function CopyableText({
   value: string;
   className?: string;
 }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -62,11 +71,11 @@ function CopyableText({
     <button
       type="button"
       onClick={handleCopy}
-      title="Nhấn để chép"
-      aria-label={copied ? "Đã chép" : `Chép ${value}`}
+      title={t.common.copyHint}
+      aria-label={copied ? t.common.copied : fmt(t.common.copyValue, { value })}
       className={`cursor-pointer underline-offset-4 transition ease-smooth hover:underline ${className ?? ""}`}
     >
-      {copied ? "Đã chép ✓" : value}
+      {copied ? t.common.copiedCheck : value}
     </button>
   );
 }
@@ -75,11 +84,13 @@ function DetailRow({
   label,
   value,
   copyable = false,
+  copyLabel,
   strong = false,
 }: {
   label: string;
   value: string;
   copyable?: boolean;
+  copyLabel?: string;
   strong?: boolean;
 }) {
   return (
@@ -96,25 +107,62 @@ function DetailRow({
           {value}
         </span>
         {copyable && value ? (
-          <CopyButton value={value} label={`Chép ${label}`} />
+          <CopyButton value={value} label={copyLabel ?? label} />
         ) : null}
       </span>
     </div>
   );
 }
 
+/**
+ * Display copy for a plan. `PLANS[id].name` stays Vietnamese on purpose — it is
+ * written into the order record that gets reconciled by hand, so it must not
+ * shift with whatever language the buyer happened to be reading in.
+ */
+function planCopy(id: PlanId, t: Dictionary) {
+  return id === "annual"
+    ? {
+        name: t.plans.annualName,
+        period: t.plans.annualPeriod,
+        badge: t.plans.annualBadge,
+      }
+    : {
+        name: t.plans.monthlyName,
+        period: t.plans.monthlyPeriod,
+        badge: null,
+      };
+}
+
 export default function UpgradeCheckout() {
+  const { t } = useI18n();
+  const router = useRouter();
   const [planId, setPlanId] = useState<PlanId>(DEFAULT_PLAN_ID);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const { email, setEmail, hydrated, isValid } = useBuyerEmail();
+  // Remembered from a previous visit purely to prefill the field — it proves
+  // nothing on its own.
+  const { email: rememberedEmail } = useBuyerEmail();
+  const { email, loaded: sessionLoaded, refresh: refreshSession } = useSession();
   const plan = PLANS[planId];
+  const planLabels = planCopy(planId, t);
+
+  const verified = Boolean(email);
+
+  // The address is fixed once verified, so the QR is built once — no keystroke
+  // debounce needed any more.
+  const qrUrl = buildVietQrUrl({
+    bankId: BANK_DETAILS.bankId,
+    accountNumber: BANK_DETAILS.accountNumber,
+    accountName: BANK_DETAILS.accountHolder,
+    amount: plan.amount,
+    addInfo: email ?? undefined,
+  });
 
   async function handleConfirm() {
-    if (!isValid) {
-      setError("Bạn nhập email trước giúp mình nhé.");
+    if (!verified) {
+      setError(t.checkout.errorVerifyFirst);
       return;
     }
 
@@ -122,10 +170,12 @@ export default function UpgradeCheckout() {
     setError(null);
 
     try {
+      // The order's email comes from the session server-side — nothing about
+      // the buyer's identity is sent from here.
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), plan: planId }),
+        body: JSON.stringify({ plan: planId }),
       });
 
       const data = (await response.json()) as {
@@ -134,7 +184,7 @@ export default function UpgradeCheckout() {
       };
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.error ?? "Không ghi nhận được yêu cầu.");
+        throw new Error(data.error ?? t.checkout.errorNotRecorded);
       }
 
       setSubmitted(true);
@@ -142,7 +192,7 @@ export default function UpgradeCheckout() {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Không ghi nhận được yêu cầu. Bạn thử lại giúp mình nhé.",
+          : t.checkout.errorNotRecordedRetry,
       );
     } finally {
       setSubmitting(false);
@@ -155,32 +205,34 @@ export default function UpgradeCheckout() {
         <div className="rounded-3xl border-2 border-border bg-card p-8 text-center shadow-sm sm:p-10">
           <p className="text-5xl">🌱</p>
           <h1 className="mt-5 text-2xl font-extrabold text-heading sm:text-3xl">
-            Cảm ơn bạn nhiều nhé!
+            {t.checkout.thanksTitle}
           </h1>
           <p className="mx-auto mt-4 max-w-md text-base leading-7 text-body">
-            Pro sẽ được kích hoạt trong vài giờ sau khi mình xác nhận thanh
-            toán. Bạn sẽ nhận được email xác nhận tại{" "}
-            <span className="font-extrabold text-translation">
-              {email.trim()}
-            </span>
-            .
+            {rich(t.checkout.thanksBody, {
+              email: (
+                <span className="font-extrabold text-translation">{email}</span>
+              ),
+            })}
           </p>
 
           <div className="mt-6 rounded-2xl bg-highlight px-5 py-4 text-left">
-            <DetailRow label="Gói" value={plan.name} />
-            <DetailRow label="Số tiền" value={formatVnd(plan.amount)} strong />
+            <DetailRow label={t.checkout.planRow} value={planLabels.name} />
+            <DetailRow
+              label={t.checkout.amountRow}
+              value={formatVnd(plan.amount)}
+              strong
+            />
           </div>
 
           <p className="mt-5 text-sm leading-6 text-muted">
-            Nếu sau 24 giờ vẫn chưa thấy gì, bạn nhắn cho mình kèm email này để
-            mình kiểm tra lại nhé.
+            {t.checkout.thanksFooter}
           </p>
 
           <Link
             href="/"
             className="btn-3d mt-7 inline-flex cursor-pointer items-center justify-center rounded-2xl bg-primary px-8 py-4 text-base font-extrabold uppercase tracking-wide text-white transition hover:bg-primary-hover"
           >
-            Về trang chủ
+            {t.checkout.backHome}
           </Link>
         </div>
       </div>
@@ -203,25 +255,25 @@ export default function UpgradeCheckout() {
               strokeLinejoin="round"
             />
           </svg>
-          Quay lại
+          {t.common.back}
         </Link>
         <h1 className="mt-4 text-3xl font-extrabold leading-tight text-heading sm:text-4xl">
-          Nâng cấp Fluent Pro
+          {t.checkout.title}
         </h1>
         <p className="mx-auto mt-3 max-w-md text-base leading-7 text-body">
-          Mở khóa nghĩa mở rộng, cụm từ đi kèm và họ từ vựng cho mọi từ trong
-          mọi bài học.
+          {t.checkout.subtitle}
         </p>
       </header>
 
       {/* Plan toggle */}
       <div
         role="radiogroup"
-        aria-label="Chọn gói Pro"
+        aria-label={t.checkout.planGroupAria}
         className="grid gap-3 sm:grid-cols-2"
       >
         {PLAN_ORDER.map((id) => {
           const option = PLANS[id];
+          const optionLabels = planCopy(id, t);
           const isActive = id === planId;
 
           return (
@@ -237,26 +289,28 @@ export default function UpgradeCheckout() {
                   : "border-border bg-card hover:border-primary"
               }`}
             >
-              {option.badge ? (
+              {optionLabels.badge ? (
                 <span className="absolute -top-2.5 right-4 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm">
-                  {option.badge}
+                  {optionLabels.badge}
                 </span>
               ) : null}
 
               <p className="text-sm font-extrabold uppercase tracking-wide text-muted">
-                {option.name}
+                {optionLabels.name}
               </p>
               <p className="mt-1.5">
                 <span className="text-2xl font-extrabold text-heading">
                   {option.priceLabel}
                 </span>
                 <span className="text-sm font-bold text-muted">
-                  {option.periodLabel}
+                  {optionLabels.period}
                 </span>
               </p>
-              {option.perMonthLabel ? (
+              {option.perMonthAmount ? (
                 <p className="mt-1 text-xs font-bold text-translation">
-                  {option.perMonthLabel}
+                  {fmt(t.plans.annualPerMonth, {
+                    amount: formatVnd(option.perMonthAmount),
+                  })}
                 </p>
               ) : null}
             </button>
@@ -267,19 +321,22 @@ export default function UpgradeCheckout() {
       {/* QR + payment details */}
       <div className="rounded-3xl border-2 border-border bg-card p-6 shadow-sm sm:p-8">
         <h2 className="text-center text-lg font-extrabold text-heading">
-          Quét mã để chuyển khoản
+          {t.checkout.scanTitle}
         </h2>
         <p className="mt-2 text-center text-sm leading-6 text-muted">
-          Mở app ngân hàng của bạn, chọn quét mã QR và quét mã bên dưới.
+          {t.checkout.scanBody}
         </p>
 
         <div className="mt-5 flex justify-center px-2 sm:px-4">
-          {/* Static, plan-specific VietQR — the amount is baked into the code. */}
+          {/* VietQR quick-link image — the amount updates instantly per plan. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            key={plan.qrSrc}
-            src={plan.qrSrc}
-            alt={`Mã VietQR cho gói ${plan.name} — ${plan.priceLabel}`}
+            key={qrUrl}
+            src={qrUrl}
+            alt={fmt(t.checkout.qrAlt, {
+              plan: planLabels.name,
+              price: plan.priceLabel,
+            })}
             className="h-auto w-full max-w-[300px] rounded-xl object-contain shadow-[0_4px_16px_rgba(45,45,45,0.08)]"
           />
         </div>
@@ -300,7 +357,9 @@ export default function UpgradeCheckout() {
               />
             </p>
           ) : (
-            <p className="text-sm font-bold text-heading">Đang cập nhật</p>
+            <p className="text-sm font-bold text-heading">
+              {t.checkout.accountPending}
+            </p>
           )}
           <p className="pt-0.5">
             <CopyableText
@@ -311,53 +370,58 @@ export default function UpgradeCheckout() {
         </div>
 
         <p className="mt-6 rounded-2xl bg-highlight px-5 py-4 text-center text-sm font-bold leading-6 text-heading">
-          Chuyển đúng{" "}
-          <span className="text-translation">{formatVnd(plan.amount)}</span> và
-          ghi <span className="text-translation">email của bạn</span> vào nội
-          dung chuyển khoản để mình đối chiếu nhé.
+          {rich(t.checkout.transferNote, {
+            amount: (
+              <span className="text-translation">{formatVnd(plan.amount)}</span>
+            ),
+            yourEmail: (
+              <span className="text-translation">
+                {t.checkout.transferNoteYourEmail}
+              </span>
+            ),
+          })}
         </p>
 
-        {/* Email — the key that matches a transfer to an account */}
+        {/* Email — verified, because reconciliation is done by hand against it */}
         <div className="mt-6">
-          <label
-            htmlFor="buyer-email"
-            className="block text-sm font-extrabold text-heading"
-          >
-            Email của bạn
-          </label>
-          <input
-            id="buyer-email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            value={hydrated ? email : ""}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              if (error) {
-                setError(null);
-              }
-            }}
-            placeholder="ban@email.com"
-            className="mt-2 w-full rounded-2xl border-2 border-border bg-background px-4 py-3.5 text-base font-semibold text-heading outline-none transition ease-smooth placeholder:text-muted focus:border-primary"
-          />
-          <p className="mt-2 text-xs leading-5 text-muted">
-            Mình dùng email này để kích hoạt Pro và gửi xác nhận cho bạn.
-          </p>
+          {!sessionLoaded ? (
+            <p className="text-sm font-bold text-muted">{t.common.loading}</p>
+          ) : verified ? (
+            <div className="rounded-2xl border-2 border-border bg-highlight px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                {t.checkout.verifiedEmailLabel}
+              </p>
+              <p className="mt-1 text-base font-extrabold text-translation">
+                {email}
+              </p>
+            </div>
+          ) : (
+            <EmailVerification
+              initialEmail={rememberedEmail}
+              submitLabel={t.checkout.verifyEmailSubmit}
+              onVerified={async () => {
+                await refreshSession();
+                // Same reason as in LessonGenerator: the header's logout
+                // button comes from the server-rendered session.
+                router.refresh();
+              }}
+            />
+          )}
         </div>
 
         {/* Transfer note — must match exactly */}
         <div className="mt-5 rounded-2xl border-2 border-dashed border-accent bg-background px-4 py-3">
           <p className="text-xs font-bold uppercase tracking-wide text-muted">
-            Nội dung chuyển khoản
+            {t.checkout.transferContentLabel}
           </p>
           <div className="mt-1 flex items-center justify-between gap-2">
             <span className="min-w-0 truncate text-base font-extrabold text-translation">
-              {isValid ? email.trim() : "— nhập email phía trên —"}
+              {verified && email ? email : t.checkout.transferContentEmpty}
             </span>
-            {isValid ? (
+            {verified && email ? (
               <CopyButton
-                value={email.trim()}
-                label="Chép nội dung chuyển khoản"
+                value={email}
+                label={t.checkout.copyTransferContent}
               />
             ) : null}
           </div>
@@ -375,15 +439,14 @@ export default function UpgradeCheckout() {
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={submitting || !isValid}
+          disabled={submitting || !verified}
           className="btn-3d mt-6 w-full cursor-pointer rounded-2xl bg-primary px-8 py-4 text-base font-extrabold uppercase tracking-wide text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? "Đang ghi nhận..." : "Mình đã chuyển khoản"}
+          {submitting ? t.checkout.confirming : t.checkout.confirm}
         </button>
 
         <p className="mt-3 text-center text-xs leading-5 text-muted">
-          Mình kiểm tra thủ công nên Pro không kích hoạt ngay lập tức — thường
-          trong vài giờ.
+          {t.checkout.manualNote}
         </p>
       </div>
     </div>

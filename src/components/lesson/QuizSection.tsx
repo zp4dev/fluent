@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { useI18n } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n/format";
 import type { QuizQuestion } from "@/types/lesson";
 
 interface QuizSectionProps {
@@ -31,6 +33,7 @@ function CelebrationOverlay() {
 }
 
 export default function QuizSection({ questions, onAnswer }: QuizSectionProps) {
+  const { t } = useI18n();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [score, setScore] = useState(0);
@@ -84,21 +87,21 @@ export default function QuizSection({ questions, onAnswer }: QuizSectionProps) {
       <div className="flex flex-col items-center rounded-2xl border-2 border-border bg-card p-6 py-14 text-center shadow-sm">
         <p className="text-5xl">{perfect ? "🏆" : "🎉"}</p>
         <h3 className="mt-6 text-3xl font-extrabold text-heading">
-          Bạn trả lời đúng {score}/{total}!
+          {fmt(t.quiz.score, { score, total })}
         </h3>
         <p className="mt-3 text-base text-body">
           {perfect
-            ? "Xuất sắc — bạn làm rất tốt!"
+            ? t.quiz.perfect
             : score >= total / 2
-              ? "Làm tốt lắm — tiếp tục cố gắng nhé!"
-              : "Hãy ôn lại từ vựng và thử lại nhé!"}
+              ? t.quiz.good
+              : t.quiz.poor}
         </p>
         <button
           type="button"
           onClick={resetQuiz}
           className="mt-8 cursor-pointer rounded-2xl bg-primary px-8 py-4 text-base font-extrabold uppercase tracking-wide text-white shadow-[0_4px_0_#CA2851] transition ease-smooth hover:bg-primary-hover active:translate-y-0.5 active:shadow-[0_2px_0_#CA2851]"
         >
-          Làm lại
+          {t.quiz.retry}
         </button>
       </div>
     );
@@ -112,7 +115,10 @@ export default function QuizSection({ questions, onAnswer }: QuizSectionProps) {
       <div className="space-y-3">
         <div className="flex items-center justify-between text-sm font-bold text-body">
           <span>
-            Câu {currentIndex + 1} / {questions.length}
+            {fmt(t.quiz.progress, {
+              current: currentIndex + 1,
+              total: questions.length,
+            })}
           </span>
           <span>
             {currentIndex + 1}/{questions.length}
@@ -187,9 +193,7 @@ export default function QuizSection({ questions, onAnswer }: QuizSectionProps) {
                   : "bg-wrong-light text-wrong"
               }`}
             >
-              {isCorrect
-                ? "Chính xác! 🎉"
-                : "Chưa đúng — xem đáp án đúng ở trên nhé."}
+              {isCorrect ? t.quiz.correct : t.quiz.incorrect}
             </p>
             <p className="text-sm leading-6 text-body">
               {currentQuestion.explanation}
@@ -199,7 +203,9 @@ export default function QuizSection({ questions, onAnswer }: QuizSectionProps) {
               onClick={handleNext}
               className="w-full cursor-pointer rounded-2xl bg-primary px-6 py-4 text-base font-extrabold uppercase tracking-wide text-white shadow-[0_4px_0_#CA2851] transition ease-smooth hover:bg-primary-hover active:translate-y-0.5 active:shadow-[0_2px_0_#CA2851]"
             >
-              {currentIndex >= questions.length - 1 ? "Xem kết quả" : "Tiếp tục"}
+              {currentIndex >= questions.length - 1
+                ? t.quiz.seeResults
+                : t.quiz.next}
             </button>
           </div>
         ) : null}

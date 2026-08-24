@@ -1,3 +1,5 @@
+import { UserFacingError } from "@/lib/errors";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { fetchDirectTranscript } from "@/lib/transcript/direct";
 import { fetchProxyTranscript } from "@/lib/transcript/proxy";
 import { fetchSupadataTranscript } from "@/lib/transcript/supadata";
@@ -7,7 +9,7 @@ type TranscriptStrategy = {
   fetch: (videoId: string) => Promise<string>;
 };
 
-function buildStrategies(): TranscriptStrategy[] {
+function buildStrategies(t: Dictionary): TranscriptStrategy[] {
   const isVercel = process.env.VERCEL === "1";
   const supadataKey = process.env.SUPADATA_API_KEY?.trim();
   const proxyUrl = process.env.TRANSCRIPT_PROXY_URL?.trim();
@@ -22,13 +24,13 @@ function buildStrategies(): TranscriptStrategy[] {
   const proxy: TranscriptStrategy | null = proxyUrl
     ? {
         name: "proxy",
-        fetch: (videoId) => fetchProxyTranscript(videoId, proxyUrl),
+        fetch: (videoId) => fetchProxyTranscript(videoId, proxyUrl, t),
       }
     : null;
 
   const direct: TranscriptStrategy = {
     name: "direct",
-    fetch: fetchDirectTranscript,
+    fetch: (videoId) => fetchDirectTranscript(videoId, t),
   };
 
   // YouTube blocks cloud provider IPs (including Vercel). Prefer external providers there.
@@ -43,20 +45,23 @@ function buildStrategies(): TranscriptStrategy[] {
   );
 }
 
-function deploymentHint(): string {
+function deploymentHint(t: Dictionary): string {
   if (process.env.VERCEL !== "1") {
     return "";
   }
 
-  return " Thêm SUPADATA_API_KEY (miễn phí 100 lượt/tháng tại supadata.ai) hoặc TRANSCRIPT_PROXY_URL vào biến môi trường Vercel.";
+  return t.api.deploymentHint;
 }
 
-export async function fetchTranscriptText(videoId: string): Promise<string> {
-  const strategies = buildStrategies();
+export async function fetchTranscriptText(
+  videoId: string,
+  t: Dictionary,
+): Promise<string> {
+  const strategies = buildStrategies(t);
 
   if (!strategies.length) {
-    throw new Error(
-      `Không có phương thức lấy phụ đề nào được cấu hình.${deploymentHint()}`,
+    throw new UserFacingError(
+      `${t.api.noTranscriptMethod}${deploymentHint(t)}`,
     );
   }
 
@@ -82,14 +87,19 @@ export async function fetchTranscriptText(videoId: string): Promise<string> {
     }
   }
 
+  // Only a message written for the reader may be forwarded. A provider error
+  // like `Supadata error (429): {...}` carries their raw response body, so it
+  // is logged above and replaced here.
   const baseMessage =
-    lastError?.message ?? "Không thể lấy phụ đề từ video này.";
+    lastError instanceof UserFacingError
+      ? lastError.message
+      : t.api.transcriptFailed;
 
   if (process.env.VERCEL === "1" && !process.env.SUPADATA_API_KEY && !process.env.TRANSCRIPT_PROXY_URL) {
-    throw new Error(
-      `YouTube chặn máy chủ Vercel nên không lấy được phụ đề trực tiếp.${deploymentHint()}`,
+    throw new UserFacingError(
+      `${t.api.vercelBlocked}${deploymentHint(t)}`,
     );
   }
 
-  throw new Error(`${baseMessage}${deploymentHint()}`);
+  throw new UserFacingError(`${baseMessage}${deploymentHint(t)}`);
 }

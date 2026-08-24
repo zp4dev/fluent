@@ -127,6 +127,26 @@ const styles = StyleSheet.create({
     color: COLORS.body,
     marginBottom: 16,
   },
+  // CEFR level. Printed as text, never as a colour block: this sheet is meant
+  // to be photocopied in black and white by a teacher.
+  levelLine: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: COLORS.deep,
+    marginBottom: 4,
+  },
+  levelNote: {
+    fontSize: 10,
+    color: COLORS.muted,
+    marginBottom: 12,
+  },
+  cefr: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: COLORS.deep,
+    marginLeft: 6,
+  },
+
   sourceRow: {
     flexDirection: "row",
     marginTop: 4,
@@ -345,6 +365,12 @@ function LessonPdfDocument({
           <Text style={styles.brand}>Fluent · Bài học tiếng Anh</Text>
           <Text style={styles.title}>{lesson.title}</Text>
           <Text style={styles.summary}>{lesson.summary}</Text>
+          {lesson.level ? (
+            <Text style={styles.levelLine}>Trình độ: {lesson.level}</Text>
+          ) : null}
+          {lesson.levelNote ? (
+            <Text style={styles.levelNote}>{lesson.levelNote}</Text>
+          ) : null}
           <View style={styles.sourceRow}>
             <Text style={styles.sourceLabel}>Video gốc:</Text>
             <Link
@@ -374,6 +400,9 @@ function LessonPdfDocument({
                   <Text style={styles.word}>{item.word}</Text>
                   {item.partOfSpeech ? (
                     <Text style={styles.pos}>{item.partOfSpeech}</Text>
+                  ) : null}
+                  {item.cefr ? (
+                    <Text style={styles.cefr}>{item.cefr}</Text>
                   ) : null}
                 </View>
                 {item.vietnamese ? (
@@ -550,6 +579,12 @@ function LessonPdfDocumentFull({
           <Text style={styles.brand}>Fluent · Bài học tiếng Anh</Text>
           <Text style={styles.title}>{lesson.title}</Text>
           <Text style={styles.summary}>{lesson.summary}</Text>
+          {lesson.level ? (
+            <Text style={styles.levelLine}>Trình độ: {lesson.level}</Text>
+          ) : null}
+          {lesson.levelNote ? (
+            <Text style={styles.levelNote}>{lesson.levelNote}</Text>
+          ) : null}
           <View style={styles.sourceRow}>
             <Text style={styles.sourceLabel}>Video gốc:</Text>
             <Link src={videoUrl} style={styles.sourceLink}>
@@ -576,6 +611,9 @@ function LessonPdfDocumentFull({
                   <Text style={styles.word}>{item.word}</Text>
                   {item.partOfSpeech ? (
                     <Text style={styles.pos}>{item.partOfSpeech}</Text>
+                  ) : null}
+                  {item.cefr ? (
+                    <Text style={styles.cefr}>{item.cefr}</Text>
                   ) : null}
                 </View>
                 {item.vietnamese ? (
