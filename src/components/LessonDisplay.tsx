@@ -1,24 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import DownloadPdfButton from "@/components/DownloadPdfButton";
 import CefrBadge from "@/components/lesson/CefrBadge";
 import GrammarSection from "@/components/lesson/GrammarSection";
 import IdiomsSection from "@/components/lesson/IdiomsSection";
+import PracticeSection from "@/components/lesson/PracticeSection";
 import QuizSection from "@/components/lesson/QuizSection";
 import VocabularyCards from "@/components/lesson/VocabularyCards";
+import {
+  availableExerciseKinds,
+  buildExercises,
+  type ExerciseKind,
+} from "@/lib/exercises";
 import { useI18n } from "@/lib/i18n/context";
 import { fmt } from "@/lib/i18n/format";
 import type { Lesson } from "@/types/lesson";
 
-type LessonTab = "vocabulary" | "idioms" | "grammar" | "quiz";
+type LessonTab = "vocabulary" | "idioms" | "grammar" | "practice" | "quiz";
 
 /** Order and emoji are fixed; the labels come from the active dictionary. */
 const TAB_ORDER: { id: LessonTab; emoji: string }[] = [
   { id: "vocabulary", emoji: "📚" },
   { id: "idioms", emoji: "💬" },
   { id: "grammar", emoji: "✏️" },
+  { id: "practice", emoji: "🧩" },
   { id: "quiz", emoji: "🎯" },
 ];
 
@@ -44,6 +51,16 @@ export default function LessonDisplay({
   const [visitedTabs, setVisitedTabs] = useState<Set<LessonTab>>(
     new Set<LessonTab>(["vocabulary"]),
   );
+  const [practicedKinds, setPracticedKinds] = useState<Set<ExerciseKind>>(
+    new Set(),
+  );
+
+  // Practice exercises are derived from the lesson already on screen — no
+  // request, no tokens. Built here rather than inside the tab because the tab
+  // badge needs the format count before the tab is ever opened, and because a
+  // rebuild on every mount would reshuffle a round in progress.
+  const exercises = useMemo(() => buildExercises(lesson), [lesson]);
+  const practiceFormatCount = availableExerciseKinds(exercises).length;
 
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [canExpandSummary, setCanExpandSummary] = useState(false);
@@ -87,6 +104,17 @@ export default function LessonDisplay({
     });
   }, []);
 
+  const handlePractice = useCallback((kind: ExerciseKind) => {
+    setPracticedKinds((prev) => {
+      if (prev.has(kind)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(kind);
+      return next;
+    });
+  }, []);
+
   const handleAnswerQuestion = useCallback((index: number) => {
     setAnsweredQuestions((prev) => {
       if (prev.has(index)) {
@@ -116,6 +144,10 @@ export default function LessonDisplay({
         return { done: reviewedWords.size, total: lesson.vocabulary.length };
       case "quiz":
         return { done: answeredQuestions.size, total: lesson.quiz.length };
+      case "practice":
+        // The badge counts formats attempted, not questions: the four formats
+        // are the thing a learner works through here.
+        return { done: practicedKinds.size, total: practiceFormatCount };
       case "idioms":
         return {
           done: visitedTabs.has("idioms") ? lesson.idiomsAndSlang.length : 0,
@@ -133,6 +165,7 @@ export default function LessonDisplay({
     vocabulary: t.lesson.tabVocabulary,
     idioms: t.lesson.tabIdioms,
     grammar: t.lesson.tabGrammar,
+    practice: t.lesson.tabPractice,
     quiz: t.lesson.tabQuiz,
   };
 
@@ -339,6 +372,10 @@ export default function LessonDisplay({
 
         {activeTab === "grammar" ? (
           <GrammarSection items={lesson.exampleSentences} />
+        ) : null}
+
+        {activeTab === "practice" ? (
+          <PracticeSection exercises={exercises} onComplete={handlePractice} />
         ) : null}
 
         {activeTab === "quiz" ? (
